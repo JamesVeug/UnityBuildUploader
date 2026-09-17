@@ -40,12 +40,20 @@ namespace Wireframe.UnitTest
             var credentials = new SteamTestCredentials();
             try
             {
-                string config = Path.Combine(builderDirectory, "config");
+                string credentialRoot = builderDirectory;
+#if UNITY_EDITOR_OSX
+                // macOS SteamCMD stores its login cache in the user's Steam folder,
+                // even when the executable is installed in ContentBuilder/builder_osx.
+                string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                Assert.IsFalse(string.IsNullOrEmpty(home), "Cannot locate the macOS user's home directory for SteamCMD credentials.");
+                credentialRoot = Path.Combine(home, "Library", "Application Support", "Steam");
+#endif
+                string config = Path.Combine(credentialRoot, "config");
                 Directory.CreateDirectory(config);
                 foreach (var pair in decoded)
                 {
                     credentials.Write(Path.Combine(config, pair.Key), pair.Value);
-                    if (pair.Key != "config.vdf") credentials.Write(Path.Combine(builderDirectory, pair.Key), pair.Value);
+                    if (pair.Key != "config.vdf") credentials.Write(Path.Combine(credentialRoot, pair.Key), pair.Value);
                 }
                 return credentials;
             }
