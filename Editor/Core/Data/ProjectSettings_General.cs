@@ -35,12 +35,13 @@ namespace Wireframe
         {
             base.OnGUI(searchContext);
 
-            GUILayout.Label("Settings for the Build Uploader that exists per project and shared with all users with access to your Unity Project via version control.", EditorStyles.wordWrappedLabel);
-            GUILayout.Label("To prevent them being shared by version control add `BuildUploader` to your .gitignore", EditorStyles.wordWrappedLabel);
+            GUILayout.Label("Build Uploader settings are shared with all users who access your Unity project through version control.", EditorStyles.wordWrappedLabel);
+            GUILayout.Label("Build and upload counters are stored separately in BuildUploader/ProjectState.json. Ignore it for workspace-local counters, or track it to share counters with intentional counter changes.", EditorStyles.wordWrappedLabel);
             
             EditorGUILayout.Space(20);
             
             BuildUploaderProjectSettings settings = BuildUploaderProjectSettings.Instance;
+            BuildUploaderProjectState state = BuildUploaderProjectState.Instance;
 
             using (new EditorGUILayout.HorizontalScope())
             {
@@ -75,11 +76,11 @@ namespace Wireframe
                 GUIContent label = new GUIContent("Last Build Number", "Number of the last build created using the build uploader. This is used for {buildNumber} when formatting text fields in the build uploader. Access it in builds using BuildMetaData.Get().UploadNumber");
                 GUILayout.Label(label, GUILayout.MaxWidth(150));
                 
-                int newBuildNumber = EditorGUILayout.IntField(settings.LastBuildNumber);
-                if (newBuildNumber != settings.LastBuildNumber)
+                int newBuildNumber = EditorGUILayout.IntField(state.LastBuildNumber);
+                if (newBuildNumber != state.LastBuildNumber)
                 {
-                    settings.LastBuildNumber = newBuildNumber;
-                    BuildUploaderProjectSettings.Save();
+                    state.LastBuildNumber = newBuildNumber;
+                    BuildUploaderProjectState.Save();
                 }
             }
             
@@ -89,11 +90,11 @@ namespace Wireframe
                     "How many upload tasks that have been started. This is used for {uploadNumber} when formatting text fields in the build uploader. Access it in builds using BuildMetaData.Get().UploadNumber");
                 GUILayout.Label(label, GUILayout.MaxWidth(150));
                 
-                int totalStartedUploadTasks = EditorGUILayout.IntField(settings.TotalUploadTasksStarted);
-                if (totalStartedUploadTasks != settings.TotalUploadTasksStarted)
+                int totalStartedUploadTasks = EditorGUILayout.IntField(state.TotalUploadTasksStarted);
+                if (totalStartedUploadTasks != state.TotalUploadTasksStarted)
                 {
-                    settings.TotalUploadTasksStarted = totalStartedUploadTasks;
-                    BuildUploaderProjectSettings.Save();
+                    state.TotalUploadTasksStarted = totalStartedUploadTasks;
+                    BuildUploaderProjectState.Save();
                 }
             }
         }

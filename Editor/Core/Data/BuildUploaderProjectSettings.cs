@@ -7,7 +7,7 @@ namespace Wireframe
     public class BuildUploaderProjectSettings
     {
         private static readonly string FilePath = Application.dataPath + "/../BuildUploader/ProjectSettings.json";
-        private static readonly int CurrentVersion = 1;
+        private const int CurrentVersion = 2;
         
         private static BuildUploaderProjectSettings _instance;
         public static BuildUploaderProjectSettings Instance
@@ -26,45 +26,108 @@ namespace Wireframe
         
         public int Version;
         public bool IncludeBuildMetaDataInStreamingDataFolder = true;
-        public int LastBuildNumber;
-        public int TotalUploadTasksStarted;
         public string AutoGenerateMenuItemPath = "ThirdParty/BuildUploader";
+
+        /// <summary>
+        /// Retained for source compatibility and forwards to <see cref="BuildUploaderProjectState.LastBuildNumber"/>.
+        /// New code should use <see cref="BuildUploaderProjectState"/> directly.
+        /// </summary>
+        public int LastBuildNumber
+        {
+            get => BuildUploaderProjectState.Instance.LastBuildNumber;
+            set => BuildUploaderProjectState.Instance.LastBuildNumber = value;
+        }
+
+        /// <summary>
+        /// Retained for source compatibility and forwards to <see cref="BuildUploaderProjectState.TotalUploadTasksStarted"/>.
+        /// New code should use <see cref="BuildUploaderProjectState"/> directly.
+        /// </summary>
+        public int TotalUploadTasksStarted
+        {
+            get => BuildUploaderProjectState.Instance.TotalUploadTasksStarted;
+            set => BuildUploaderProjectState.Instance.TotalUploadTasksStarted = value;
+        }
 
         public BuildUploaderProjectSettings()
         {
             Version = CurrentVersion;
         }
         
+        internal static void EnsureLoaded()
+        {
+            if (_instance == null)
+            {
+                LoadFile();
+            }
+        }
+
         private static void LoadFile()
         {
-            if (File.Exists(FilePath))
+            _instance = Load(FilePath, BuildUploaderProjectState.FilePath, out BuildUploaderProjectState state);
+            BuildUploaderProjectState.SetInstance(state);
+        }
+
+        internal static BuildUploaderProjectSettings Load(
+            string settingsFilePath,
+            string stateFilePath,
+            out BuildUploaderProjectState state)
+        {
+            if (File.Exists(settingsFilePath))
             {
-                string json = File.ReadAllText(FilePath);
+                string json = File.ReadAllText(settingsFilePath);
                 BuildUploaderProjectSettings savedData = JSON.DeserializeObject<BuildUploaderProjectSettings>(json);
                 if (savedData != null)
                 {
-                    _instance = savedData;
-                    return;
+                    LegacyProjectSettingsData legacyData = JSON.DeserializeObject<LegacyProjectSettingsData>(json);
+                    bool stateExists = File.Exists(stateFilePath);
+                    state = BuildUploaderProjectState.Load(stateFilePath, false);
+
+                    if ((legacyData?.Version ?? 0) < CurrentVersion)
+                    {
+                        if (!stateExists)
+                        {
+                            state.LastBuildNumber = legacyData?.LastBuildNumber ?? 0;
+                            state.TotalUploadTasksStarted = legacyData?.TotalUploadTasksStarted ?? 0;
+                            BuildUploaderProjectState.Save(state, stateFilePath);
+                        }
+
+                        savedData.Version = CurrentVersion;
+                        Save(savedData, settingsFilePath);
+                    }
+                    else if (!stateExists)
+                    {
+                        BuildUploaderProjectState.Save(state, stateFilePath);
+                    }
+
+                    return savedData;
                 }
             }
 
-            _instance = new BuildUploaderProjectSettings();
-            Save();
+            state = BuildUploaderProjectState.Load(stateFilePath);
+            var settings = new BuildUploaderProjectSettings();
+            Save(settings, settingsFilePath);
+            return settings;
         }
         
         public static void Save()
         {
             if (_instance != null)
             {
-                string directory = Path.GetDirectoryName(FilePath);
-                if (!Directory.Exists(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-                
-                string json = JSON.SerializeObject(_instance);
-                File.WriteAllText(FilePath, json);
+                BuildUploaderProjectState.SaveIfLoaded();
+                Save(_instance, FilePath);
             }
+        }
+
+        private static void Save(BuildUploaderProjectSettings settings, string filePath)
+        {
+            string directory = Path.GetDirectoryName(filePath);
+            if (!Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            string json = JSON.SerializeObject(settings);
+            File.WriteAllText(filePath, json);
         }
         
         public static void SaveToStreamingAssets(BuildMetaData meta, BuildPlayerOptions options, string buildPath)
@@ -127,27 +190,31 @@ namespace Wireframe
             File.WriteAllText(streamingAssetPath + "/BuildData.json", json);
         }
         
+        /// <summary>
+        /// Retained for source compatibility and forwards to <see cref="BuildUploaderProjectState.BumpUploadNumber"/>.
+        /// New code should use <see cref="BuildUploaderProjectState"/> directly.
+        /// </summary>
         public static void BumpUploadNumber()
         {
-            BuildUploaderProjectSettings settings = BuildUploaderProjectSettings.Instance;
-            settings.TotalUploadTasksStarted++;
-            BuildUploaderProjectSettings.Save();
+            BuildUploaderProjectState.BumpUploadNumber();
         }
         
+        /// <summary>
+        /// Retained for source compatibility and forwards to <see cref="BuildUploaderProjectState.BumpBuildNumber"/>.
+        /// New code should use <see cref="BuildUploaderProjectState"/> directly.
+        /// </summary>
         public static void BumpBuildNumber()
         {
-            BuildUploaderProjectSettings settings = BuildUploaderProjectSettings.Instance;
-            settings.LastBuildNumber++;
-            BuildUploaderProjectSettings.Save();
+            BuildUploaderProjectState.BumpBuildNumber();
         }
 
         public static BuildMetaData CreateFromProjectSettings()
         {
-            BuildUploaderProjectSettings settings = BuildUploaderProjectSettings.Instance;
+            BuildUploaderProjectState state = BuildUploaderProjectState.Instance;
 
             BuildMetaData metaData = new BuildMetaData();
-            metaData.BuildNumber = settings.LastBuildNumber;
-            metaData.UploadNumber = settings.TotalUploadTasksStarted;
+            metaData.BuildNumber = state.LastBuildNumber;
+            metaData.UploadNumber = state.TotalUploadTasksStarted;
             
             return metaData;
         }
@@ -162,6 +229,13 @@ namespace Wireframe
             metaData.UploadNumber = int.Parse(uploadNumberStr);
             
             return metaData;
+        }
+
+        private class LegacyProjectSettingsData
+        {
+            public int Version;
+            public int LastBuildNumber;
+            public int TotalUploadTasksStarted;
         }
     }
 }

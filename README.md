@@ -91,6 +91,18 @@ Replace `41cf5e` with the `GUID or `Name` of your Upload Profile
 
 Replace `41cf5e` with the `GUID or `Name` of your Upload Profile
 
+### Project state and version control
+
+Shared Build Uploader configuration is stored in `BuildUploader/ProjectSettings.json`. The frequently changing build and upload counters are stored separately in `BuildUploader/ProjectState.json`.
+
+To keep counters local to each workspace, ignore only the state file:
+
+```gitignore
+/BuildUploader/ProjectState.json
+```
+
+Tracking `ProjectState.json` instead retains shared counter state for the team, but allocated build numbers and started upload tasks will continue to produce intentional changes to that file.
+
 ### Services
   - Steamworks
     - Uploading a build to any branch or depots

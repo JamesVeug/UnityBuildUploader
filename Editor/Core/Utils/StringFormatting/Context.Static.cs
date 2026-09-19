@@ -110,7 +110,7 @@ namespace Wireframe
             AddS(TIME_KEY, ()=> DateTime.Now.ToString("HH-mm-ss"), "The current local time in the format HH-MM-SS.");
             AddS(DATE_TIME_KEY, ()=> DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss"), "The current local date and time in the format YYYY-MM-DD HH-MM-SS.");
             AddS(MACHINE_NAME_KEY, ()=> Environment.MachineName, "The name of the machine running the build.");
-            AddS(UPLOAD_NUMBER_KEY, ()=> (BuildUploaderProjectSettings.Instance.TotalUploadTasksStarted + 1).ToString(), "A unique number of the upload task that's getting sources and uploading them.", true);
+            AddS(UPLOAD_NUMBER_KEY, ()=> (BuildUploaderProjectState.Instance.TotalUploadTasksStarted + 1).ToString(), "A unique number of the upload task that's getting sources and uploading them.", true);
             
             // Task
             AddS(TASK_PROFILE_NAME_KEY, null, "The name of the upload profile or task specified when creating the task.");

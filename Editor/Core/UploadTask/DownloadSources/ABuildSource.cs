@@ -48,7 +48,7 @@ namespace Wireframe
         public override void PrepareContextForCaching()
         {
             base.PrepareContextForCaching();
-            BuildUploaderProjectSettings.BumpBuildNumber();
+            BuildUploaderProjectState.BumpBuildNumber();
         }
 
         public override Task<bool> Prepare(string taskContentsFolder, UploadTaskReport.StepResult stepResult, CancellationTokenSource token)

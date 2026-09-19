@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("VeugelJame.BuildUploader.Editor.UnityPipeline")]
 [assembly: InternalsVisibleTo("BuildUploader.UnitTest.Discord")]
 [assembly: InternalsVisibleTo("BuildUploader.UnitTest.Itchio")]
+[assembly: InternalsVisibleTo("BuildUploader.UnitTest.Common")]
 
 namespace Wireframe
 {
