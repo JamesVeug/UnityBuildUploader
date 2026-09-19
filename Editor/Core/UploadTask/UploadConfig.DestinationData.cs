@@ -10,7 +10,7 @@ namespace Wireframe
         [Wiki("Destinations", "Specify where you want to upload your build. All destinations are executed at the same time.")]
         public class DestinationData
         {
-            [Wiki("Enabled", "When on, this destination will upload all content of the source files.")]
+            [Wiki("Enabled", "When enabled, this destination will upload or copy all source content. Nowhere does not move any files.")]
             public bool Enabled = true;
             public AUploadDestination Destination;
             public UIHelpers.BuildDestinationsPopup.DestinationData DestinationType;

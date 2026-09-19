@@ -382,7 +382,7 @@ namespace Wireframe
                 bool canUpload = CanStartUpload(out string reason);
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    // Upload all
+                    // Run all
                     using (new EditorGUILayout.VerticalScope())
                     {
                         if (!canUpload)
@@ -394,12 +394,13 @@ namespace Wireframe
                         // button (which sits beneath the dropdown) doesn't show hover / press state.
                         using (new EditorGUI.DisabledScope(!canUpload || FormatStringFieldDropdowns.IsDropdownOpen))
                         {
-                            if (GUILayout.Button("Upload All", GUILayout.Height(100)))
+                            if (GUILayout.Button("Run All", GUILayout.Height(100)))
                             {
-                                if (EditorUtility.DisplayDialog("Upload All",
-                                        "Are you sure you want to upload all enabled builds?" +
-                                        "\n\nNOTE: You can not cancel this operation once started!",
-                                        "Yes", "Cancel"))
+                                if (EditorUtility.DisplayDialog(
+                                    "Run All",
+                                    "Are you sure you want to run all enabled builds using their configured destinations?" +
+                                    "\n\nNOTE: You cannot cancel this operation once started!",
+                                    "Yes", "Cancel"))
                                 {
                                     try
                                     {
