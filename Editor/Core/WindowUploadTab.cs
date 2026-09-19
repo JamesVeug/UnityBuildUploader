@@ -382,7 +382,7 @@ namespace Wireframe
                 bool canUpload = CanStartUpload(out string reason);
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    // Upload all
+                    // Run all
                     using (new EditorGUILayout.VerticalScope())
                     {
                         if (!canUpload)

@@ -91,7 +91,7 @@ namespace Wireframe
                     Close();
                 }
                 
-                if (GUILayout.Button("Upload All"))
+                if (GUILayout.Button("Run All"))
                 {
                     Upload();
                     Close();

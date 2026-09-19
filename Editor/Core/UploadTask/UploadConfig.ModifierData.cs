@@ -10,7 +10,7 @@ namespace Wireframe
         [Wiki("Modifiers", "Make changes to the files gathered from sources before uploading. Modifiers are executed in one at a time and in order.")]
         public class ModifierData
         {
-            [Wiki("Enabled", "When on, this modifier will modify the content of the files for a build.")]
+            [Wiki("Enabled", "When enabled, this modifier will modify the content of the files for a build.")]
             public bool Enabled = true;
             public AUploadModifer Modifier;
             public UIHelpers.BuildModifiersPopup.ModifierData ModifierType;

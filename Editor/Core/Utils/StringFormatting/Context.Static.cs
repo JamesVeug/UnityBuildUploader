@@ -115,7 +115,7 @@ namespace Wireframe
             // Task
             AddS(TASK_PROFILE_NAME_KEY, null, "The name of the upload profile or task specified when creating the task.");
             AddS(TASK_DESCRIPTION_KEY, null, "The description of the current task being executed.");
-            AddS(TASK_FAILED_REASONS_KEY, null, "Gets the reasons why the task failed to upload all destinations.");
+            AddS(TASK_FAILED_REASONS_KEY, null, "Gets the reasons why the task failed.");
             AddS(TASK_STATUS_KEY, null, "Get a small message describing the status of the Upload Task.");
 
             // Sources

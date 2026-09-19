@@ -50,7 +50,7 @@ namespace Wireframe
 
             GUILayout.Space(20);
             EditorGUILayout.LabelField(new GUIContent($"Cached Builds ({GetSizeOfCacheFolder()})",
-                    "When starting an upload all source files will be copied to a temporary location to avoid modifying raw files. This is known as the cache."), 
+                    "When starting a task, all source files are copied to a temporary location to avoid modifying the originals. This is known as the cache."), 
                 EditorStyles.boldLabel);
             using (new GUILayout.HorizontalScope())
             {

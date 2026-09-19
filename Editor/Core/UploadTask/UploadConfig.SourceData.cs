@@ -13,7 +13,7 @@ namespace Wireframe
             [NonSerialized]
             public bool ShowFormattedExportFolder = false;
             
-            [Wiki("Enabled", "When on, this source will gather the content from a source and get it ready to be uploaded")]
+            [Wiki("Enabled", "When enabled, this source will gather the content from a source and get it ready to be uploaded")]
             public bool Enabled = true;
             
             [Wiki("Sub Folder", "A sub-path in the cached directory of which this source will be saved to before being modified and uploaded. Leave empty to save to the root folder.")]
