@@ -142,7 +142,7 @@ namespace Wireframe
             IsSuccessful = false;
             HasStarted = true;
             CurrentStepType = AUploadTask_Step.StepType.Validation;
-            BuildUploaderProjectSettings.BumpUploadNumber();
+            BuildUploaderProjectState.BumpUploadNumber();
 
             for (var i = 0; i < m_uploadConfigs.Count; i++)
             {

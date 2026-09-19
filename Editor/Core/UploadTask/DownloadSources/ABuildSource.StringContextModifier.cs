@@ -26,7 +26,7 @@
             {
                 if (m_buildMetaData == null)
                 {
-                    return (BuildUploaderProjectSettings.Instance.LastBuildNumber + 1).ToString();
+                    return (BuildUploaderProjectState.Instance.LastBuildNumber + 1).ToString();
                 }
 
                 return m_buildMetaData.BuildNumber.ToString();
