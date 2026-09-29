@@ -3,7 +3,8 @@
     "rootNamespace": "",
     "references": [
         "GUID:4c800362d85ec4145b19593ffacc0990",
-        "GUID:71e9815631ba2574b92564e93b8efc9c"
+        "GUID:71e9815631ba2574b92564e93b8efc9c",
+        "Unity.Pipeline.Attributes"
     ],
     "includePlatforms": [
         "Editor"
