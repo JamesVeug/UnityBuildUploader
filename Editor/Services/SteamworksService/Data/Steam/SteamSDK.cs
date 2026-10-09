@@ -176,6 +176,27 @@ namespace Wireframe
 				return;
 			}
 
+			// steamcmd.sh launches the real binary as a child, so that needs the exec bit too.
+			List<string> executables = new List<string> { exePath };
+			string builderPath = Path.GetDirectoryName(exePath) ?? string.Empty;
+			if (Application.platform == RuntimePlatform.OSXEditor)
+			{
+				executables.Add(Path.Combine(builderPath, "steamcmd"));
+			}
+			else if (Application.platform == RuntimePlatform.LinuxEditor)
+			{
+				executables.Add(Path.Combine(builderPath, "linux32", "steamcmd"));
+			}
+
+			foreach (string executable in executables)
+			{
+				if (File.Exists(executable) && !ProcessUtils.EnsureExecutable(executable, out string error))
+				{
+					Debug.LogError("[Steam] " + error);
+					return;
+				}
+			}
+
 			m_steamCMDPath = exePath;
 			m_scriptPath = scripts;
 			m_initialized = true;

@@ -140,6 +140,12 @@ namespace Wireframe
                 return;
             }
 
+            if (!ProcessUtils.EnsureExecutable(exePath, out string error))
+            {
+                Debug.LogError("[Nintendo] " + error);
+                return;
+            }
+
             m_authoringToolPath = exePath;
             m_scriptPath = scripts;
             m_initialized = true;

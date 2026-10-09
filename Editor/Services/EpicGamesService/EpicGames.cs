@@ -55,6 +55,12 @@ namespace Wireframe
                 result.SetFailed("BuildPatchTool not found at path: " + exePath);
                 return false;
             }
+
+            if (!ProcessUtils.EnsureExecutable(exePath, out string executableError))
+            {
+                result.SetFailed(executableError);
+                return false;
+            }
             
             string formattedBuildVersion = ctx.FormatString(buildVersion).Trim();
             

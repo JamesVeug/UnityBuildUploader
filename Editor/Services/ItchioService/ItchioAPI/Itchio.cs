@@ -95,6 +95,12 @@ namespace Wireframe
                 return;
             }
 
+            if (!ProcessUtils.EnsureExecutable(exePath, out string error))
+            {
+                Debug.LogError("[Itchio] " + error);
+                return;
+            }
+
             m_SDKCMDPath = exePath;
             m_initialized = true;
         }

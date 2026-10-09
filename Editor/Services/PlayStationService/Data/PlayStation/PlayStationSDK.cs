@@ -151,6 +151,12 @@ namespace Wireframe
                 return;
             }
 
+            if (!ProcessUtils.EnsureExecutable(exePath, out string error))
+            {
+                Debug.LogError("[PlayStation] " + error);
+                return;
+            }
+
             m_publishingToolPath = exePath;
             m_scriptPath = scripts;
             m_initialized = true;
