@@ -36,8 +36,8 @@ namespace Wireframe
     {
         public override string FileName => "DepotBuildConfig";
 
-        // Set your assigned depot ID here
-        public int DepotID = 999999;
+        // Set your assigned depot ID here. 0 means not set yet.
+        public int DepotID;
 
         // include all files recursively
         public DepotFileMapping FileMapping = new DepotFileMapping();

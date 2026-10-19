@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Wireframe
 {
@@ -26,6 +27,7 @@ namespace Wireframe
 
         public SteamApp(SteamApp current)
         {
+            ID = current.ID;
             Name = current.Name;
             App = new AppVDFFile(current.App);
             
@@ -57,6 +59,63 @@ namespace Wireframe
                 Depots.Add(depot);
             }
         }
+
+        /// <summary>
+        /// Depot problems that block uploads: a missing Depot ID (#116), or two depots that Steam or a saved
+        /// upload config cannot tell apart (#115).
+        /// </summary>
+        public List<string> GetDepotErrors()
+        {
+            List<string> errors = new List<string>();
+            foreach (SteamDepot depot in Depots)
+            {
+                if (!depot.HasDepotID)
+                {
+                    errors.Add($"Depot '{depot.Name}' has no Depot ID. Enter the numeric ID from Steamworks.");
+                }
+            }
+
+            foreach (IGrouping<int, SteamDepot> group in Depots.Where(a => a.HasDepotID).GroupBy(a => a.Depot.DepotID))
+            {
+                if (group.Count() > 1)
+                {
+                    errors.Add($"Depots {JoinNames(group)} all use Depot ID {group.Key}. Each depot needs its own ID.");
+                }
+            }
+
+            foreach (IGrouping<int, SteamDepot> group in Depots.GroupBy(a => a.ID))
+            {
+                if (group.Count() > 1)
+                {
+                    errors.Add($"Depots {JoinNames(group)} share internal ID {group.Key}, so upload configs cannot tell them apart. " +
+                               "Remove all but one, add them again, then re-select them in your upload configs.");
+                }
+            }
+
+            return errors;
+        }
+
+        /// <summary>
+        /// Depot problems that do not block uploads but are probably mistakes.
+        /// </summary>
+        public List<string> GetDepotWarnings()
+        {
+            List<string> warnings = new List<string>();
+            foreach (IGrouping<string, SteamDepot> group in Depots.GroupBy(a => a.Name ?? ""))
+            {
+                if (group.Count() > 1)
+                {
+                    warnings.Add($"{group.Count()} depots are named '{group.Key}'. Popups show their Depot IDs to tell them apart.");
+                }
+            }
+
+            return warnings;
+        }
+
+        private static string JoinNames(IEnumerable<SteamDepot> depots)
+        {
+            return string.Join(", ", depots.Select(a => $"'{a.Name}'"));
+        }
     }
 
     [Serializable]
@@ -82,9 +141,19 @@ namespace Wireframe
         
         public SteamDepot(SteamDepot currentDepot)
         {
+            ID = currentDepot.ID;
             Name = currentDepot.Name;
             Depot = new DepotVDFFile(currentDepot.Depot);
         }
 
+        /// <summary>
+        /// Name plus Steam depot ID for popups, so depots that share a name stay distinguishable (#115).
+        /// </summary>
+        public string DisplayNameWithDepotID => $"{Name} ({(HasDepotID ? Depot.DepotID.ToString() : "no Depot ID")})";
+
+        /// <summary>
+        /// False until the user enters the numeric depot ID from Steamworks (#116).
+        /// </summary>
+        public bool HasDepotID => Depot != null && (Depot.DepotID > 0 || Depot.DepotID == 999999);
     }
 }

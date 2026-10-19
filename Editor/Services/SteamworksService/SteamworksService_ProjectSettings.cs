@@ -155,6 +155,19 @@ namespace Wireframe
                 Save();
                 SteamUIUtils.DepotPopup.Refresh();
             }
+
+            if (_current != null)
+            {
+                foreach (string error in _current.GetDepotErrors())
+                {
+                    EditorGUILayout.HelpBox(error, MessageType.Error);
+                }
+
+                foreach (string warning in _current.GetDepotWarnings())
+                {
+                    EditorGUILayout.HelpBox(warning, MessageType.Warning);
+                }
+            }
         }
 
         public void Save()

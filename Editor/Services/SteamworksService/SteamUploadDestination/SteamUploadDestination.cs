@@ -437,11 +437,6 @@ namespace Wireframe
 
         }
 
-        public override void TryGetWarnings(List<GUIContent> warnings, Context ctx)
-        {
-            base.TryGetWarnings(warnings, ctx);
-        }
-
         public override void TryGetErrors(List<GUIContent> errors)
         {
             base.TryGetErrors(errors);
@@ -485,6 +480,26 @@ namespace Wireframe
             if (m_depots == null || m_depots.Count == 0)
             {
                 errors.Add(new GUIContent("No Depot selected"));
+            }
+            else
+            {
+                foreach (SteamDepot depot in m_depots)
+                {
+                    if (!depot.HasDepotID)
+                    {
+                        errors.Add(new GUIContent($"Depot '{depot.Name}' has no Depot ID",
+                            "Enter the numeric Depot ID from Steamworks in Project Settings > Build Uploader > Steamworks."));
+                    }
+                }
+
+                foreach (IGrouping<int, SteamDepot> group in m_depots.Where(a => a.HasDepotID).GroupBy(a => a.Depot.DepotID))
+                {
+                    if (group.Count() > 1)
+                    {
+                        errors.Add(new GUIContent($"Depot ID {group.Key} is selected more than once",
+                            string.Join(", ", group.Select(a => a.Name)) + " share the same Depot ID."));
+                    }
+                }
             }
 
             if (m_destinationBranch == null)
