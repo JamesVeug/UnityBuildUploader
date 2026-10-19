@@ -72,7 +72,23 @@ namespace Wireframe
             
             using (new EditorGUILayout.HorizontalScope())
             {
-                GUIContent label = new GUIContent("Last Build Number", "Number of the last build created using the build uploader. This is used for {buildNumber} when formatting text fields in the build uploader. Access it in builds using BuildMetaData.Get().UploadNumber");
+                GUIContent label = new GUIContent("Skip Number Updates",
+                    "When on, starting builds and uploads does not increase Last Build Number or Upload Tasks Started, " +
+                    "so BuildUploader/ProjectSettings.json is not rewritten and stays clean in version control." +
+                    "\n\n{buildNumber} and {uploadNumber} then stay the same for every build and upload until you change them below.");
+                GUILayout.Label(label, GUILayout.MaxWidth(150));
+
+                bool newSkip = GUILayout.Toggle(settings.SkipBuildAndUploadNumberUpdates, "");
+                if (newSkip != settings.SkipBuildAndUploadNumberUpdates)
+                {
+                    settings.SkipBuildAndUploadNumberUpdates = newSkip;
+                    BuildUploaderProjectSettings.Save();
+                }
+            }
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                GUIContent label = new GUIContent("Last Build Number","Number of the last build created using the build uploader. This is used for {buildNumber} when formatting text fields in the build uploader. Access it in builds using BuildMetaData.Get().UploadNumber");
                 GUILayout.Label(label, GUILayout.MaxWidth(150));
                 
                 int newBuildNumber = EditorGUILayout.IntField(settings.LastBuildNumber);

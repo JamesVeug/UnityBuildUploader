@@ -30,6 +30,10 @@ namespace Wireframe
         public int TotalUploadTasksStarted;
         public string AutoGenerateMenuItemPath = "ThirdParty/BuildUploader";
 
+        // When true, starting uploads and builds never changes the two numbers above or rewrites this file, so it
+        // stays clean in version control (#109). {buildNumber} and {uploadNumber} then repeat between runs.
+        public bool SkipBuildAndUploadNumberUpdates;
+
         public BuildUploaderProjectSettings()
         {
             Version = CurrentVersion;
@@ -130,13 +134,23 @@ namespace Wireframe
         public static void BumpUploadNumber()
         {
             BuildUploaderProjectSettings settings = BuildUploaderProjectSettings.Instance;
+            if (settings.SkipBuildAndUploadNumberUpdates)
+            {
+                return;
+            }
+
             settings.TotalUploadTasksStarted++;
             BuildUploaderProjectSettings.Save();
         }
-        
+
         public static void BumpBuildNumber()
         {
             BuildUploaderProjectSettings settings = BuildUploaderProjectSettings.Instance;
+            if (settings.SkipBuildAndUploadNumberUpdates)
+            {
+                return;
+            }
+
             settings.LastBuildNumber++;
             BuildUploaderProjectSettings.Save();
         }
