@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
+using System.Text;
 using UnityEngine;
 
 namespace Wireframe
@@ -29,11 +30,7 @@ namespace Wireframe
                     {
                         json = json.Substring(1, json.Length - 2);
                     }
-                    json = json.Replace("\\r", "\r");
-                    json = json.Replace("\\n", "\n");
-                    json = json.Replace("\\t", "\t");
-                    json = json.Replace("\\\"", "\"");
-                    return json;
+                    return Unescape(json);
                 }
 
                 if (type.IsPrimitive)
@@ -75,9 +72,7 @@ namespace Wireframe
 
                     if (type == typeof(char))
                     {
-                        if (json.Length == 3 && json[0] == '"' && json[2] == '"')
-                            return json[1]; // "a" -> a
-                        return char.Parse(json);
+                        return char.Parse((string)FromJSON(json, typeof(string))); // "a" -> a, "\\" -> \
                     }
 
                     if (type == typeof(decimal))
@@ -377,6 +372,120 @@ namespace Wireframe
 
                 Debug.LogError("Type not supported: " + type.Name);
                 return null;
+            }
+
+            /// <summary>
+            /// Decodes the escapes in a string's contents. Before backslashes were escaped, the serializer
+            /// wrote paths raw ("C:\Builds\new_build"), and those files are still on disk. A string holding an
+            /// escape the serializer never writes is one of them: its backslashes stay as they are and only
+            /// \" is decoded. \b and \f count, because the serializer writes those characters as \u0008 and \u000c.
+            /// </summary>
+            private static string Unescape(string text)
+            {
+                if (text.IndexOf('\\') < 0)
+                {
+                    return text;
+                }
+
+                bool unescapedBackslashes = HasUnwrittenEscape(text);
+                StringBuilder sb = new StringBuilder(text.Length);
+                for (int i = 0; i < text.Length; i++)
+                {
+                    char c = text[i];
+                    if (c != '\\' || i == text.Length - 1)
+                    {
+                        sb.Append(c);
+                        continue;
+                    }
+
+                    char next = text[i + 1];
+                    if (unescapedBackslashes)
+                    {
+                        if (next == '"')
+                        {
+                            sb.Append('"');
+                            i++;
+                        }
+                        else
+                        {
+                            sb.Append(c);
+                        }
+                        continue;
+                    }
+
+                    i++;
+                    switch (next)
+                    {
+                        case 'n':
+                            sb.Append('\n');
+                            break;
+                        case 'r':
+                            sb.Append('\r');
+                            break;
+                        case 't':
+                            sb.Append('\t');
+                            break;
+                        case 'u':
+                            sb.Append((char)int.Parse(text.Substring(i + 1, 4), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture));
+                            i += 4;
+                            break;
+                        default:
+                            sb.Append(next); // \" \\ \/
+                            break;
+                    }
+                }
+
+                return sb.ToString();
+            }
+
+            private static bool HasUnwrittenEscape(string text)
+            {
+                for (int i = 0; i < text.Length; i++)
+                {
+                    if (text[i] != '\\')
+                    {
+                        continue;
+                    }
+
+                    if (i == text.Length - 1)
+                    {
+                        return true;
+                    }
+
+                    char next = text[i + 1];
+                    if (next == 'u' && IsHex(text, i + 2, 4))
+                    {
+                        i += 5;
+                    }
+                    else if (next == '"' || next == '\\' || next == '/' || next == 'n' || next == 'r' || next == 't')
+                    {
+                        i++;
+                    }
+                    else
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            private static bool IsHex(string text, int start, int count)
+            {
+                if (start + count > text.Length)
+                {
+                    return false;
+                }
+
+                for (int i = start; i < start + count; i++)
+                {
+                    if (!Uri.IsHexDigit(text[i]))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
             }
 
             private static int FindClosingBracket(string text, int startIndexInclusive)
