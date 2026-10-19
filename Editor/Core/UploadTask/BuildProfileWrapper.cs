@@ -26,7 +26,12 @@ namespace Wireframe
         private static readonly MethodInfo deserializeFromYAMLStringInfo = playerSettingsType.GetMethod("DeserializeFromYAMLString", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
         
         private static readonly PropertyInfo platformBuildProfileInfo = buildProfileType.GetProperty("platformBuildProfile", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        
+
+        // GetScenesForBuild was added part way through 6000.0 (missing in 6000.0.31, present in 6000.0.77)
+        private static readonly MethodInfo getScenesForBuildInfo = buildProfileType.GetMethod("GetScenesForBuild", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, Type.EmptyTypes, null);
+        private static readonly PropertyInfo overrideGlobalScenesInfo = buildProfileType.GetProperty("overrideGlobalScenes", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                                                                       ?? buildProfileType.GetProperty("overrideGlobalSceneList", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
         private static PlayerSettings globalCachedPlayerSettings;
         
         public string GetBuildName => Profile.name;
@@ -48,14 +53,32 @@ namespace Wireframe
             get
             {
                 List<string> guids = new List<string>();
-                foreach (EditorBuildSettingsScene scene in Profile.GetScenesForBuild())
+                foreach (EditorBuildSettingsScene scene in GetScenesForBuild(Profile))
                 {
                     guids.Add(scene.guid.ToString());
                 }
                 return guids;
             }
         }
-        
+
+        public static EditorBuildSettingsScene[] GetScenesForBuild(BuildProfile profile)
+        {
+            if (getScenesForBuildInfo != null)
+            {
+                return (EditorBuildSettingsScene[])getScenesForBuildInfo.Invoke(profile, null);
+            }
+
+            // Older 6000.0 versions: same logic as BuildProfile.GetScenesForBuild
+            if (overrideGlobalScenesInfo == null)
+            {
+                Debug.LogWarning("Unable to find BuildProfile overrideGlobalScenes! Using global scene list.");
+                return EditorBuildSettings.scenes;
+            }
+
+            bool overrideGlobalScenes = (bool)overrideGlobalScenesInfo.GetValue(profile);
+            return overrideGlobalScenes ? profile.scenes : EditorBuildSettings.scenes;
+        }
+
         public string GetGUID
         {
             get
