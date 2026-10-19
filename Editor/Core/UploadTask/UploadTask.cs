@@ -317,6 +317,12 @@ namespace Wireframe
                 if (!stepSuccessful || !postStepSuccessful || token.IsCancellationRequested)
                 {
                     IsSuccessful = false;
+
+                    // The task result comes from the report, so a step that failed without SetFailed must still fail it
+                    if (m_report.Successful && !token.IsCancellationRequested)
+                    {
+                        m_report.NewReport(step.Type).SetFailed($"{step.Type} step failed without giving a reason.");
+                    }
                 }
 
                 if (step.FireActions)
