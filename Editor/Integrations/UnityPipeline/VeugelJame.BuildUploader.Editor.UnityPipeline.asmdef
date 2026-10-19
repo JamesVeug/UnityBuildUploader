@@ -3,7 +3,8 @@
     "references": [
         "VeugelJame.BuildUploader.Editor",
         "VeugelJame.BuildUploader",
-        "Unity.Pipeline"
+        "Unity.Pipeline",
+        "Unity.Pipeline.Attributes"
     ],
     "includePlatforms": [
         "Editor"
