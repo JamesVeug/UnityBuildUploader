@@ -18,7 +18,7 @@ def run(config_path, output_root):
         if not unity.is_file() or not (project / "Assets").is_dir():
             raise ValueError("Each job needs an existing Unity executable and Unity project: " + job["label"])
         # Smoke runs once per editor, then each requested target gets a fresh editor process.
-        runs = [("services", None, "BuildUploader.UnitTest.Steam;BuildUploader.UnitTest.Discord;BuildUploader.UnitTest.Itchio", None)]
+        runs = [("services", None, "BuildUploader.UnitTest.Core;BuildUploader.UnitTest.Steam;BuildUploader.UnitTest.Discord;BuildUploader.UnitTest.Itchio", None)]
         runs += [(target["name"], target["name"], "BuildUploader.UnitTest.Builds", target.get("profile"))
                  for target in job["targets"]]
         for name, target, assemblies, profile in runs:

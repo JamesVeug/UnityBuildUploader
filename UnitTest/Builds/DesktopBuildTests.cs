@@ -29,7 +29,7 @@ namespace Wireframe.UnitTest
             Assert.IsNotNull(profile, "Not a Build Profile asset: " + profilePath);
             var wrapper = new BuildProfileWrapper(profile);
             Assert.AreEqual(target, wrapper.GetTarget, "The configured profile targets a different platform.");
-            Assert.IsTrue(profile.GetScenesForBuild().Any(scene => scene.enabled && File.Exists(scene.path)),
+            Assert.IsTrue(BuildProfileWrapper.GetScenesForBuild(profile).Any(scene => scene.enabled && File.Exists(scene.path)),
                 "The test profile needs at least one enabled scene.");
             source = new BuildProfileSource(profile, true);
 #else

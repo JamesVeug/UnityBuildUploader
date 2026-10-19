@@ -1,43 +1,79 @@
-# UploadTask integration tests
+# Build Uploader tests
 
-Editor tests are separated into Common, Steam, Discord, Itchio and Builds assemblies. Add `com.veugeljame.builduploader` to the host project's `testables` array to discover them.
+EditMode tests, one assembly per area. A host project discovers them by adding
+`com.veugeljame.builduploader` to the `testables` array in `Packages/manifest.json`.
 
-Every case executes `UploadTask.StartAsync` and requires a completed, successful task report:
+**Every fix lands with a test.** Put it in `Core/` when it needs no credentials, network or player build.
+If a fix cannot be tested without credentials, a live service, an interactive terminal or a person, add a
+row to [`UntestedFixes.md`](UntestedFixes.md) instead, saying what would make it testable.
 
-- Steam: `FolderSource` → `SteamUploadDestination` with preview enabled and branch `none`. SteamCMD uses an existing authorized credential cache. No live build is published.
-- Discord: `FolderSource` → `LocalPathDestination`, followed by one `DiscordMessageChannelAction` on task completion. Dry run serializes the formatted message and embed without sending HTTP.
-- Itchio: an HTML fixture through `FolderSource` → `ItchioDestination`, channel `html5`, using native Butler `push --dry-run`. This checks the web upload pipeline; the fixture is not a compiled WebGL player.
-- Builds: one player for the active Windows x64, macOS or Linux x64 target through a build source → `LocalPathDestination`. Unity 6 uses `BuildProfileSource`; Unity 2019/2022 use `BuildConfigSource` initialized from Build Settings.
+| Assembly | Fixture | Needs | Covers |
+| --- | --- | --- | --- |
+| `BuildUploader.UnitTest.Core` | `UploadTaskTests` | Nothing | UploadTask end to end on every host: folder/file sources, local path destination, cache and cleanup, validation failure, exclude/compress/decompress, action triggers and status, config post-actions, failing destinations, cancellation, disabled configs, duplicate files, `{key}` formatting |
+| | `ProcessUtilsTests` | Nothing | ANSI colour codes stripped from captured output; `EnsureExecutable` restores the exec bit |
+| | `SdkInitializationTests` | Nothing | Steam, itch.io, Nintendo and PlayStation `Initialize` on fake SDK folders make their tools executable; Steam login status is cleared and kept per user |
+| | `SteamLoginProbeTests` (macOS, Linux) | Nothing | `SteamSDK.ProbeLoginAsync` against a fake `steamcmd.sh`: coloured output, Steam Guard, rate limit, Linux SteamCMD HOME, where the saved login is read |
+| | `EpicGamesUploadTests` (macOS, Linux) | Nothing | `EpicGames.Upload` against a fake BuildPatchTool: exec bit and secret passed by name |
+| | `SteamDepotTests` | Nothing | Depot Ids never reused, labels with Depot IDs, missing/duplicate Depot ID errors in the app config and the Steam destination (#115, #116) |
+| | `ProjectSettingsTests` | Nothing | Build and upload numbers, and the Skip Number Updates setting that keeps `ProjectSettings.json` untouched (#109) |
+| `BuildUploader.UnitTest.Discord` | `DiscordMessageTests` | Nothing | `DiscordMessageChannelAction` dry run: serialized message and embed, no HTTP |
+| `BuildUploader.UnitTest.Itchio` | `ItchioWebGLTests` | Native Butler | `ItchioDestination` `push --dry-run` of an HTML fixture on channel `html5` |
+| `BuildUploader.UnitTest.Steam` | `SteamPreviewTests` | SteamCMD + authorized account | `SteamUploadDestination` preview upload, branch `none`; nothing goes live |
+| `BuildUploader.UnitTest.Builds` | `DesktopBuildTests` | Desktop build module | One player for the active Win64/macOS/Linux64 target through `BuildProfileSource` (Unity 6) or `BuildConfigSource` (2019/2022) into `LocalPathDestination` |
+| `BuildUploader.UnitTest.Common` | `TestSupport` | — | Helpers: `Run`, `Execute`, `Await`, `WaitUntil`, `OutputDirectory`, `FixtureDirectory`, `RequiredEnvironment` |
 
 ## Configuration
 
-Steam environment variables:
+| Variable | Used by |
+| --- | --- |
+| `BUILDUPLOADER_TEST_BUTLER` | Full path to the native Butler executable |
+| `BUILDUPLOADER_TEST_STEAM_SDK` | Steamworks SDK directory containing `tools/ContentBuilder` |
+| `BUILDUPLOADER_TEST_STEAM_USER`, `..._APP_ID`, `..._DEPOT_ID` | Dedicated build account, test app and depot |
+| `BUILDUPLOADER_TEST_STEAM_CREDENTIALS` | JSON map of SteamCMD credential files (see the host project's `.ci/README.md`) |
+| `BUILDUPLOADER_TEST_BUILD_PROFILE` | Unity 6: Build Profile asset for the active target, with an enabled scene |
+| `BUILDUPLOADER_TEST_REQUIRE_CONFIGURATION=1` | Missing configuration fails instead of being ignored (CI sets this) |
 
-```
-BUILDUPLOADER_TEST_STEAM_SDK=/absolute/path/to/steamworks-sdk
-BUILDUPLOADER_TEST_STEAM_USER=authorized-build-account
-BUILDUPLOADER_TEST_STEAM_APP_ID=app-id
-BUILDUPLOADER_TEST_STEAM_DEPOT_ID=depot-id
-```
+- Steam authenticates even in preview mode. Use a dedicated depot and never run two uploads against one SDK
+  at once.
+- Before Unity 6, configure enabled scenes and Player Settings in Build Settings.
+- Start the editor with the target already selected (`-buildTarget`). Switching target mid-test reloads assemblies.
 
-The SDK directory must contain ContentBuilder. Steam still authenticates in preview mode. Use a dedicated test depot and do not run another upload against the same SDK concurrently.
+## Side effects
 
-For itch.io set `BUILDUPLOADER_TEST_BUTLER` to the full native Butler executable path. No itch.io credentials are required for dry run.
+- Tests write under `<HostProject>/TestResults/BuildUploader/` and keep the output.
+- Tests temporarily change SDK paths, the Steam username and Build Uploader preferences, and restore them in
+  `finally` / `TearDown`. A cached Steam login status of *Unknown* is not restored (it is cleared).
+- Every task bumps `TotalUploadTasksStarted` and every build bumps `LastBuildNumber` in
+  `<HostProject>/BuildUploader/ProjectSettings.json`. Run in a disposable copy or revert that file afterwards.
 
-For Unity 6 set `BUILDUPLOADER_TEST_BUILD_PROFILE` to a Build Profile asset matching the active target, with an enabled scene. For older editors configure enabled scenes and Player Settings. Launch the editor with the target already selected; switching targets during a test can reload assemblies.
+## Writing tests
 
-Tests temporarily configure SDK preferences and restore them afterward. UploadTask performs its normal report saving and build/upload counter updates. Use dedicated test projects. Outputs are retained under `TestResults/BuildUploader`; normal task caches follow package preferences.
+- Start tasks with `StartAsync(false)` (via `TestSupport`). With debug logs on, any `Debug.LogError` from a
+  failure path fails the test.
+- Use `TestSupport.Run` when the task must succeed. Use `TestSupport.Execute` and assert on `task.Report`
+  for failure paths. Pass a timeout so a hung task fails instead of stalling CI.
+- Keep `Core` free of credentials, network and player builds. Fake external tools instead: `FakeSteamSdk` builds
+  an SDK folder whose `steamcmd.sh` prints canned output and records its HOME. Pipeline doubles
+  (`UnitTestRecordingAction`, `UnitTestFailingDestination`, `UnitTestGateDestination`) live in
+  `Core/UnitTestDoubles.cs`; like every pipeline type they are found by reflection and appear in the host's pickers.
+- The host CI runner requires **every** `[Test]`/`[UnityTest]` declared in any `Core/*.cs` file to pass. A file
+  that only applies to some hosts starts with `// BuildUploader-Hosts: OSXUniversal Linux64` (build target
+  names) and wraps its code in a matching `#if`. Otherwise give each host a real assertion rather than skipping.
+  Other suites name their required cases in `.ci/run_tests.py`.
+- `Core` sees package internals (`InternalsVisibleTo`), so overrides of `protected internal` members keep
+  `protected internal`.
+- Restore every preference or SDK path a test changes, and never touch the real user's Steam folder.
+- Keep sources compiling on 2019.4: C# 7.3, no Unity 6 APIs without `#if UNITY_6000_0_OR_NEWER`.
 
-## Matrix
+## Running
 
-The package minimum is Unity 2019.4. Unity 6-only features remain version guarded. Sources have been compiler checked against 2019.4.41f2, 2022.3.62f3, 6000.3.21f1 and 6000.7.0a2; this does not establish runtime or host coverage for every combination.
-
-Use a separate compatible Unity project per editor version, with its matching Test Framework. Do not downgrade the Unity 6 project. Install the target modules and any toolchain required by each profile. Windows, macOS and Linux hosts use the same test sources.
-
-Copy `matrix.example.json`, configure editor/project paths and profiles, then run:
+From the host project, `.ci/run_tests.py` runs the suites in order (core → services → build) and stops at
+the first failure. See the host `.ci/README.md`. To run several editors and targets with your own projects,
+copy `matrix.example.json` and run:
 
 ```
 python UnitTest/run_matrix.py my-matrix.json --output /absolute/path/to/fresh-results
 ```
 
-The runner executes service tests once per editor and a separate process for each configured desktop target. NUnit XML, editor logs and `matrix.json` record results. Missing configuration produces skips, and an incomplete matrix returns a nonzero exit code. Compiler checks are not counted as executed tests.
+`run_matrix.py` runs core and services once per editor and the build once per desktop target. It writes
+NUnit XML, editor logs and `matrix.json`, and exits nonzero if the matrix is incomplete.

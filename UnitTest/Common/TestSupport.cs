@@ -52,17 +52,36 @@ namespace Wireframe.UnitTest
 
         public static IEnumerator Run(UploadTask task)
         {
-            Task operation = task.StartAsync(false);
-            yield return Await(operation);
-            Assert.IsTrue(task.IsComplete);
+            yield return Execute(task);
             Assert.IsTrue(task.IsSuccessful, task.Report == null ? "UploadTask did not create a report." : task.Report.GetReport());
         }
 
-        // UnityTest coroutines work with the Test Framework versions shipped for Unity 2019 onward.
-        public static IEnumerator Await(Task task)
+        /// <summary>Runs the task to completion without requiring success, for failure-path tests.</summary>
+        public static IEnumerator Execute(UploadTask task, double timeoutSeconds = 0)
         {
-            while (!task.IsCompleted) yield return null;
+            Task operation = task.StartAsync(false);
+            yield return Await(operation, timeoutSeconds);
+            Assert.IsTrue(task.IsComplete);
+            Assert.IsNotNull(task.Report, "UploadTask did not create a report.");
+        }
+
+        // UnityTest coroutines work with the Test Framework versions shipped for Unity 2019 onward.
+        public static IEnumerator Await(Task task, double timeoutSeconds = 0)
+        {
+            yield return WaitUntil(() => task.IsCompleted, timeoutSeconds, "Task did not complete");
             task.GetAwaiter().GetResult();
+        }
+
+        /// <summary>Yields editor frames until the condition holds. Zero waits without a limit.</summary>
+        public static IEnumerator WaitUntil(Func<bool> condition, double timeoutSeconds, string message)
+        {
+            DateTime deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
+            while (!condition())
+            {
+                if (timeoutSeconds > 0 && DateTime.UtcNow > deadline)
+                    Assert.Fail(message + " within " + timeoutSeconds + " seconds.");
+                yield return null;
+            }
         }
 
         public static string Quote(string argument)

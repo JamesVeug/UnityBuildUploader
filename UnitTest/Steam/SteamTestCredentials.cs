@@ -47,6 +47,10 @@ namespace Wireframe.UnitTest
                 string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
                 Assert.IsFalse(string.IsNullOrEmpty(home), "Cannot locate the macOS user's home directory for SteamCMD credentials.");
                 credentialRoot = Path.Combine(home, "Library", "Application Support", "Steam");
+#elif UNITY_EDITOR_LINUX
+                // Linux SteamCMD runs with HOME=<builder_linux>/home (SteamSDK.GetSteamCMDEnvironment)
+                // and keeps its login in HOME/Steam/config, not next to steamcmd.sh.
+                credentialRoot = Path.Combine(builderDirectory, "home", "Steam");
 #endif
                 string config = Path.Combine(credentialRoot, "config");
                 Directory.CreateDirectory(config);
