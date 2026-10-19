@@ -275,6 +275,11 @@ namespace Wireframe
 
         public static void DrawPopup<T>(List<T> selected, List<T> allOptions, string emptySelection, Action<List<T>> callback, params GUILayoutOption[] options) where T : DropdownElement
         {
+            DrawPopup(selected, allOptions, emptySelection, a => a.DisplayName, callback, options);
+        }
+
+        public static void DrawPopup<T>(List<T> selected, List<T> allOptions, string emptySelection, Func<T, string> menuLabel, Action<List<T>> callback, params GUILayoutOption[] options) where T : DropdownElement
+        {
             // TODO: Replace this with the actual popup with more lists/array shit?
             string buttonText = selected.Count == 0 ? emptySelection : string.Join(",", selected.Select(a=>a.DisplayName));
             GUIStyle style = new GUIStyle(EditorStyles.popup);
@@ -296,7 +301,7 @@ namespace Wireframe
                     foreach (T channel in allOptions.OrderBy(a => a.DisplayName))
                     {
                         bool isSelected = selected.Contains(channel);
-                        menu.AddItem(new GUIContent(channel.DisplayName), isSelected, () =>
+                        menu.AddItem(new GUIContent(menuLabel(channel)), isSelected, () =>
                         {
                             if (isSelected)
                             {

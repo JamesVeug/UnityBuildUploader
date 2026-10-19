@@ -101,10 +101,28 @@ namespace Wireframe
             return menu;
         }
 
+        /// <summary>
+        /// Index passed to CreateItem, which subclasses use as the new entry's DropdownElement Id. Configs save those
+        /// Ids, so never hand out one still in the list: Count + 1 did after a delete and merged two entries (#115).
+        /// </summary>
+        internal static int NextItemIndex(List<T> items)
+        {
+            int next = items.Count + 1;
+            foreach (T item in items)
+            {
+                if (item is DropdownElement element && element.Id >= next)
+                {
+                    next = element.Id + 1;
+                }
+            }
+
+            return next;
+        }
+
         private void AddCallback(ReorderableList l)
         {
             l.index++;
-            T depot = CreateItem(list.Count + 1);
+            T depot = CreateItem(NextItemIndex(list));
             list.Add(depot);
             dirty = true;
 
