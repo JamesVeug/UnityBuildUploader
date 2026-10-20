@@ -34,17 +34,18 @@ namespace Wireframe
             // Required for reflection
         }
 
-        public NintendoUploadDestination(string titleId, string branchName) : base()
+        public NintendoUploadDestination(string titleId, string branchName, string applicationId = "") : base()
         {
-            SetNintendoApp(titleId);
+            SetNintendoApp(titleId, applicationId);
             SetNintendoBranch(branchName);
         }
 
-        public void SetNintendoApp(string titleId)
+        public void SetNintendoApp(string titleId, string applicationId = "")
         {
             m_app = new NintendoApp()
             {
-                TitleID = titleId
+                TitleID = titleId,
+                ApplicationID = applicationId
             };
         }
 

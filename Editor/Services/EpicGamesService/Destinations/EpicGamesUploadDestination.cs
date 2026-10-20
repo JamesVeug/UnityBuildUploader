@@ -32,6 +32,41 @@ namespace Wireframe
 
         public EpicGamesUploadDestination() : base() { }
 
+        public EpicGamesUploadDestination(string organizationID, string productID, string artifactID, string clientID,
+            string clientSecretEnvVar, string appLaunch) : base()
+        {
+            SetArtifact(organizationID, productID, artifactID, clientID, clientSecretEnvVar);
+            SetAppLaunch(appLaunch);
+        }
+
+        /// <summary>
+        /// Upload to these IDs instead of entries from Project Settings. BuildPatchTool reads the client secret
+        /// from the named environment variable, so the secret itself is never passed on the command line.
+        /// </summary>
+        public void SetArtifact(string organizationID, string productID, string artifactID, string clientID, string clientSecretEnvVar)
+        {
+            Organization = new EpicGamesOrganization { OrganizationID = organizationID };
+            Product = new EpicGamesProduct
+            {
+                ProductID = productID,
+                ClientID = clientID,
+                SecretType = EpicGamesProduct.SecretTypes.EnvVar,
+                ClientSecretEnvVar = clientSecretEnvVar
+            };
+            Artifact = new EpicGamesArtifact { ArtifactID = artifactID };
+        }
+
+        public void SetAppLaunch(string appLaunch, string appArgs = "")
+        {
+            AppLaunch = appLaunch;
+            AppArgs = appArgs;
+        }
+
+        public void SetBuildVersion(string buildVersion)
+        {
+            BuildVersion = buildVersion;
+        }
+
         public override async Task<bool> Upload(UploadTaskReport.StepResult result)
         {
             string secret = GetSecret();
