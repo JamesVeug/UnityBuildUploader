@@ -114,6 +114,52 @@ namespace Wireframe
         }
 
         /// <summary>
+        /// Reads an app to check that the API Key can see it.
+        /// GET /v1/apps/{id}
+        /// </summary>
+        public static async Task<AppleSimpleResponse> GetApp(
+            AppleConfig.AppleApiKey apiKey,
+            string appStoreConnectAppId,
+            UploadTaskReport.StepResult result = null)
+        {
+            string jwt = GetJWT(apiKey, result);
+            if (string.IsNullOrEmpty(jwt))
+            {
+                result?.SetFailed($"Could not sign an App Store Connect token with API Key '{apiKey?.Name}'.");
+                return new AppleSimpleResponse(false);
+            }
+
+            string url = $"{ApiBaseUrl}/v1/apps/{Uri.EscapeDataString(appStoreConnectAppId)}";
+            using (RequestWrapper www = RequestWrapper.Get(url))
+            {
+                www.SetRequestHeader("Authorization", "Bearer " + jwt);
+                www.SetRequestHeader("Accept", "application/json");
+
+                RequestResult response = await www.SendAsync(result);
+                if (!response.IsSuccessful)
+                {
+                    result?.SetFailed($"App Store Connect app {appStoreConnectAppId} could not be read with API Key '{apiKey.Name}': {response.Data}");
+                    return new AppleSimpleResponse(false);
+                }
+
+                // { "data": { "id": "...", "type": "apps", "attributes": { "name": "...", "bundleId": "..." } } }
+                string name = "";
+                string bundleId = "";
+                Dictionary<string, object> responseDict = JSON.DeserializeObject<Dictionary<string, object>>(response.Data);
+                if (responseDict != null
+                    && responseDict.TryGetValue("data", out object dataObj) && dataObj is Dictionary<string, object> data
+                    && data.TryGetValue("attributes", out object attributesObj) && attributesObj is Dictionary<string, object> attributes)
+                {
+                    name = attributes.TryGetValue("name", out object nameObj) ? nameObj?.ToString() : "";
+                    bundleId = attributes.TryGetValue("bundleId", out object bundleObj) ? bundleObj?.ToString() : "";
+                }
+
+                result?.AddLog($"Found App Store Connect app {appStoreConnectAppId}: {name} ({bundleId})");
+                return new AppleSimpleResponse(true);
+            }
+        }
+
+        /// <summary>
         /// Associates an existing build with a TestFlight beta group.
         /// POST /v1/betaGroups/{id}/relationships/builds
         /// </summary>

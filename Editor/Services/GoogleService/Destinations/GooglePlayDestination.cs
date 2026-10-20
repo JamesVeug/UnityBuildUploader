@@ -40,6 +40,10 @@ namespace Wireframe
         [Wiki("Binary File Name", "When the source is a folder, the file name to upload. eg: 'game.aab'. Leave empty to auto-detect a single .aab or .apk in the source folder.", 7)]
         private string m_binaryFileName = "";
 
+        [Wiki("Dry Run", "Open an edit to check the credentials and package name, then delete it. " +
+                         "The binary is not uploaded and nothing is committed.", 8)]
+        private bool m_dryRun;
+
         public GooglePlayDestination() : base()
         {
             // Required for reflection
@@ -87,6 +91,11 @@ namespace Wireframe
             m_binaryFileName = binaryFileName;
         }
 
+        public void SetDryRun(bool dryRun)
+        {
+            m_dryRun = dryRun;
+        }
+
         public override async Task<bool> Upload(UploadTaskReport.StepResult result)
         {
             m_recordedVersionCode = 0;
@@ -108,10 +117,12 @@ namespace Wireframe
             int progressId = ProgressUtils.Start("Google Play", $"Publishing {packageName} to {track}...");
             try
             {
-                GooglePlayUploadResponse response = await GooglePlay.PublishBinary(
-                    binaryPath, packageName, track,
-                    releaseStatus, releaseName, releaseNotes,
-                    token, result);
+                GooglePlayUploadResponse response = m_dryRun
+                    ? await GooglePlay.DryRun(binaryPath, packageName, track, token, result)
+                    : await GooglePlay.PublishBinary(
+                        binaryPath, packageName, track,
+                        releaseStatus, releaseName, releaseNotes,
+                        token, result);
 
                 if (response.Successful)
                 {
@@ -232,7 +243,8 @@ namespace Wireframe
                 { "releaseStatus", m_releaseStatusFormat },
                 { "releaseName", m_releaseNameFormat },
                 { "releaseNotes", m_releaseNotesFormat },
-                { "binaryFileName", m_binaryFileName }
+                { "binaryFileName", m_binaryFileName },
+                { "dryRun", m_dryRun }
             };
         }
 
@@ -264,6 +276,7 @@ namespace Wireframe
             m_releaseNameFormat = data.TryGetValue("releaseName", out object rn) ? rn?.ToString() ?? "{taskProfileName} {version}" : "{taskProfileName} {version}";
             m_releaseNotesFormat = data.TryGetValue("releaseNotes", out object notes) ? notes?.ToString() ?? Context.TASK_DESCRIPTION_KEY : Context.TASK_DESCRIPTION_KEY;
             m_binaryFileName = data.TryGetValue("binaryFileName", out object bin) ? bin?.ToString() ?? "" : "";
+            m_dryRun = data.TryGetValue("dryRun", out object dryRun) && dryRun is bool dryRunValue && dryRunValue;
         }
     }
 }

@@ -81,6 +81,60 @@ namespace Wireframe
             return new GooglePlayUploadResponse(true, versionCode, packageName, track, editId);
         }
 
+        /// <summary>
+        /// Check the credentials and package name without changing anything: open an edit, then delete it.
+        /// The binary is not uploaded, because Play rejects anything that is not a signed build with a new versionCode.
+        /// </summary>
+        public static async Task<GooglePlayUploadResponse> DryRun(
+            string binaryPath,
+            string packageName,
+            string track,
+            string accessToken,
+            UploadTaskReport.StepResult result = null)
+        {
+            if (!File.Exists(binaryPath))
+            {
+                result?.SetFailed($"File does not exist: {binaryPath}");
+                return new GooglePlayUploadResponse(false);
+            }
+
+            string editId = await InsertEdit(packageName, accessToken, result);
+            if (string.IsNullOrEmpty(editId))
+            {
+                return new GooglePlayUploadResponse(false);
+            }
+
+            long size = new FileInfo(binaryPath).Length;
+            result?.AddLog($"Dry run: would upload {Path.GetFileName(binaryPath)} ({size} bytes) to track '{track}' of {packageName}");
+
+            if (!await DeleteEdit(packageName, editId, accessToken, result))
+            {
+                return new GooglePlayUploadResponse(false);
+            }
+
+            return new GooglePlayUploadResponse(true, 0, packageName, track);
+        }
+
+        private static async Task<bool> DeleteEdit(string packageName, string editId, string accessToken, UploadTaskReport.StepResult result)
+        {
+            string url = $"https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{packageName}/edits/{editId}";
+
+            using (RequestWrapper www = RequestWrapper.Delete(url))
+            {
+                www.SetRequestHeader("Authorization", $"Bearer {accessToken}");
+
+                RequestResult response = await www.SendAsync(result);
+                if (!response.IsSuccessful)
+                {
+                    result?.SetFailed($"Failed to delete Google Play edit {editId}");
+                    return false;
+                }
+
+                result?.AddLog($"Deleted Google Play edit {editId} without committing it");
+                return true;
+            }
+        }
+
         private static async Task<string> InsertEdit(string packageName, string accessToken, UploadTaskReport.StepResult result)
         {
             string url = $"https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{packageName}/edits";

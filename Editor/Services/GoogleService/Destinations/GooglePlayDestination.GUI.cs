@@ -39,6 +39,14 @@ namespace Wireframe
 
             using (new GUILayout.HorizontalScope())
             {
+                GUIContent label = new GUIContent("Dry Run:",
+                    "Open an edit to check the credentials and package name, then delete it without uploading.");
+                GUILayout.Label(label, GUILayout.Width(120));
+                isDirty |= CustomToggle.DrawToggle(ref m_dryRun);
+            }
+
+            using (new GUILayout.HorizontalScope())
+            {
                 GUILayout.Label("App:", GUILayout.Width(120));
                 isDirty |= GoogleUIUtils.AppPopup.DrawPopup(ref m_app, m_context, GUILayout.Width(200));
             }

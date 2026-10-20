@@ -47,6 +47,14 @@ namespace Wireframe
                 }
             }
 
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                GUILayout.Label(new GUIContent("Dry Run:",
+                    "Upload the package, then delete the submission instead of committing it."),
+                    GUILayout.Width(120));
+                isDirty |= CustomToggle.DrawToggle(ref m_dryRun);
+            }
+
             EditorGUILayout.HelpBox(
                 "Requires an Azure AD app registration with the \"Microsoft Store\" API permission. " +
                 "See Partner Center → Account settings → User management → Add Azure AD applications.",

@@ -40,6 +40,11 @@ namespace Wireframe
             "Apple's processing pipeline can take several minutes; 600 (10 minutes) is the default.", 6)]
         private int m_findBuildTimeoutSeconds = 600;
 
+        [Wiki("Dry Run",
+            "Check the API Key and App with App Store Connect without uploading the .ipa. " +
+            "altool is not run, so this also works outside macOS.", 7)]
+        private bool m_dryRun;
+
         // Captured during Upload() so the StringContextModifier can publish them as
         // {appleBuildId} / {appleBuildVersion} / {appleBuildNumber} for downstream actions.
         private string m_lastBuildId;
@@ -71,6 +76,11 @@ namespace Wireframe
             m_buildNumberFormat = format;
         }
 
+        public void SetDryRun(bool dryRun)
+        {
+            m_dryRun = dryRun;
+        }
+
         public override string Summary()
         {
             string appName = m_app != null ? m_app.Name : "<no app>";
@@ -93,6 +103,18 @@ namespace Wireframe
             string buildNumber = m_context.FormatString(m_buildNumberFormat);
             m_lastBuildVersion = shortVersion;
             m_lastBuildNumber = buildNumber;
+
+            if (m_dryRun)
+            {
+                AppleSimpleResponse appResponse = await Apple.GetApp(m_apiKey, m_app.AppStoreConnectID, result);
+                if (!appResponse.Successful)
+                {
+                    return false;
+                }
+
+                result.AddLog($"Dry run: would upload {Path.GetFileName(ipaPath)} ({shortVersion} ({buildNumber})) with xcrun altool");
+                return true;
+            }
 
             int progressId = ProgressUtils.Start("Apple TestFlight", $"Uploading {Path.GetFileName(ipaPath)} via altool...");
             try
@@ -169,8 +191,9 @@ namespace Wireframe
             base.TryGetErrors(errors);
 
             AppleService service = InternalUtils.GetService<AppleService>();
-            if (!service.IsReadyToStartBuild(out GUIContent reason))
+            if (!service.IsReadyToStartBuild(out GUIContent reason) && !(m_dryRun && Apple.Enabled))
             {
+                // A dry run only calls the App Store Connect API, so it does not need macOS
                 errors.Add(reason);
             }
 
@@ -217,7 +240,8 @@ namespace Wireframe
                 { "app", m_app?.Id ?? 0 },
                 { "buildVersionFormat", m_buildVersionFormat ?? "" },
                 { "buildNumberFormat", m_buildNumberFormat ?? "" },
-                { "findBuildTimeoutSeconds", m_findBuildTimeoutSeconds }
+                { "findBuildTimeoutSeconds", m_findBuildTimeoutSeconds },
+                { "dryRun", m_dryRun }
             };
         }
 
@@ -247,6 +271,8 @@ namespace Wireframe
             {
                 m_findBuildTimeoutSeconds = 600;
             }
+
+            m_dryRun = data.TryGetValue("dryRun", out object dryRun) && dryRun is bool dryRunValue && dryRunValue;
         }
     }
 }

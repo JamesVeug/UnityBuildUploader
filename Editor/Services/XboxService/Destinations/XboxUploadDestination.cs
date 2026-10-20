@@ -21,10 +21,29 @@ namespace Wireframe
         [Wiki("RemoveFailedPendingSubmission", "Delete the current pending submission if there is one before creating a new submission. " +
                                       "Checks on xbox if there is a pending submission and deletes it before we start a new submission.", 3)]
         private bool m_removeFailedPendingSubmission = false;
-        
+
+        [Wiki("Dry Run", "Create the submission and upload the package, then delete the submission instead of committing it. " +
+                         "Nothing is sent for certification.", 4)]
+        private bool m_dryRun;
+
         private string m_cachedSubmissionId = "";
 
         public XboxUploadDestination() : base() { }
+
+        public XboxUploadDestination(XboxConfig.XboxApp app) : base()
+        {
+            m_app = app;
+        }
+
+        public void SetApp(XboxConfig.XboxApp app)
+        {
+            m_app = app;
+        }
+
+        public void SetDryRun(bool dryRun)
+        {
+            m_dryRun = dryRun;
+        }
 
         public override async Task<bool> Upload(UploadTaskReport.StepResult result)
         {
@@ -75,6 +94,15 @@ namespace Wireframe
 
             result.AddLog($"Xbox: Uploading package from {zipPath}...");
             bool uploaded = await Xbox.UploadPackage(submission.FileUploadUrl, zipPath, result);
+
+            if (m_dryRun)
+            {
+                // Delete the submission even if the package upload failed so a dry run never leaves one pending
+                result.AddLog($"Xbox: Dry run, deleting submission {submission.SubmissionId} instead of committing it...");
+                bool deleted = await Xbox.DeletePendingSubmission(productId, submission.SubmissionId, token, result);
+                return uploaded && deleted;
+            }
+
             if (!uploaded)
                 return false;
 
@@ -165,6 +193,7 @@ namespace Wireframe
                 { "waitForCertification", m_waitForCertification },
                 { "removeFailedPendingSubmission", m_removeFailedPendingSubmission },
                 { "submissionIdFormat", m_submissionIdFormat?.Key ?? "" },
+                { "dryRun", m_dryRun },
             };
         }
 
@@ -182,6 +211,8 @@ namespace Wireframe
 
             if (m_submissionIdFormat != null && data.TryGetValue("submissionIdFormat", out object key))
                 m_submissionIdFormat.Key = key?.ToString() ?? "";
+
+            m_dryRun = data.TryGetValue("dryRun", out object dryRun) && dryRun is bool dryRunValue && dryRunValue;
         }
     }
 }

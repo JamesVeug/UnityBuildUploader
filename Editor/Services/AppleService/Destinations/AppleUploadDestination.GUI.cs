@@ -26,6 +26,14 @@ namespace Wireframe
 
             using (new GUILayout.HorizontalScope())
             {
+                GUILayout.Label(new GUIContent("Dry Run:",
+                        "Check the API Key and App with App Store Connect without uploading the .ipa."),
+                    GUILayout.Width(140));
+                isDirty |= CustomToggle.DrawToggle(ref m_dryRun);
+            }
+
+            using (new GUILayout.HorizontalScope())
+            {
                 GUILayout.Label("API Key:", GUILayout.Width(140));
                 isDirty |= AppleUIUtils.ApiKeyPopup.DrawPopup(ref m_apiKey, m_context, GUILayout.Width(200));
             }
