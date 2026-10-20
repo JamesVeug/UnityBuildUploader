@@ -20,6 +20,7 @@ row to [`UntestedFixes.md`](UntestedFixes.md) instead, saying what would make it
 | `BuildUploader.UnitTest.Itchio` | `ItchioWebGLTests` | Native Butler | `ItchioDestination` `push --dry-run` of an HTML fixture on channel `html5` |
 | `BuildUploader.UnitTest.Steam` | `SteamPreviewTests` | SteamCMD + authorized account | `SteamUploadDestination` preview upload, branch `none`; nothing goes live |
 | `BuildUploader.UnitTest.Builds` | `DesktopBuildTests` | Desktop build module | One player for the active Win64/macOS/Linux64 target through `BuildProfileSource` (Unity 6) or `BuildConfigSource` (2019/2022) into `LocalPathDestination` |
+| | `OptionalPackagesTests` | Nothing (starts a second editor, a few minutes) | A new project with only the package and the engine modules (plus SharpZipLib before 2021.1) compiles, and leaves out the assemblies that need Unity Pipeline or Test Framework |
 | `BuildUploader.UnitTest.Common` | `TestSupport` | — | Helpers: `Run`, `Execute`, `Await`, `WaitUntil`, `OutputDirectory`, `FixtureDirectory`, `RequiredEnvironment` |
 
 ## Configuration
@@ -64,6 +65,10 @@ row to [`UntestedFixes.md`](UntestedFixes.md) instead, saying what would make it
   `protected internal`.
 - Restore every preference or SDK path a test changes, and never touch the real user's Steam folder.
 - Keep sources compiling on 2019.4: C# 7.3, no Unity 6 APIs without `#if UNITY_6000_0_OR_NEWER`.
+- Every test asmdef needs the `defineConstraints` `UNITY_INCLUDE_TESTS` and `BUILD_UPLOADER_TEST_FRAMEWORK`, and
+  a `versionDefines` entry that sets `BUILD_UPLOADER_TEST_FRAMEWORK` when `com.unity.test-framework` is installed
+  (copy one from `Core`). When the package is embedded, Unity defines `UNITY_INCLUDE_TESTS` even without Test
+  Framework, and the assembly then fails for want of NUnit. `OptionalPackagesTests` catches a missing constraint.
 
 ## Running
 

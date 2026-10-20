@@ -23,6 +23,7 @@ Last reviewed: 2026-10-19 against `develop` 181232e plus the uncommitted fixes f
 | Fix | Test |
 | --- | --- |
 | A step failing without `SetFailed` still fails the task | `UploadTaskTests.FailedDestinationWithoutReasonStillFailsTask` |
+| An embedded copy of the package no longer fails to compile its test assemblies in a project without Test Framework (NUnit missing) | `OptionalPackagesTests.CompilesWithoutOptionalPackages` |
 | ANSI colour codes stripped from process output (59ce393) | `ProcessUtilsTests.CapturedOutputHasAnsiCodesStripped`, `...TaskOutput...`, `SteamLoginProbeTests.ColouredLoginOutputIsAuthorized` |
 | SDK tools get their exec bit (5ef4383) | `ProcessUtilsTests.EnsureExecutable*`, `SdkInitializationTests.*Initialize*`, `EpicGamesUploadTests.UploadMakesBuildPatchToolExecutable` |
 | Linux SteamCMD gets its own HOME, and its login is read from there (7efa179, 516c138) | `SteamLoginProbeTests.SteamCMDRunsWithItsOwnHomeOnLinux`, `...CredentialCheckReadsWhereSteamCMDSavesItsLogin` |

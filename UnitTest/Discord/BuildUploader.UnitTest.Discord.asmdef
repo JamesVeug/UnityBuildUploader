@@ -10,5 +10,16 @@
   "optionalUnityReferences": [
     "TestAssemblies"
   ],
-  "autoReferenced": false
+  "autoReferenced": false,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS",
+    "BUILD_UPLOADER_TEST_FRAMEWORK"
+  ],
+  "versionDefines": [
+    {
+      "name": "com.unity.test-framework",
+      "expression": "0.0.0",
+      "define": "BUILD_UPLOADER_TEST_FRAMEWORK"
+    }
+  ]
 }
