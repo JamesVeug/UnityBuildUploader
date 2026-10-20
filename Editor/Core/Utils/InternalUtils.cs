@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("BuildUploader.UnitTest.Discord")]
 [assembly: InternalsVisibleTo("BuildUploader.UnitTest.Itchio")]
 [assembly: InternalsVisibleTo("BuildUploader.UnitTest.Core")]
+[assembly: InternalsVisibleTo("BuildUploader.UnitTest.Destinations")]
 
 namespace Wireframe
 {

@@ -1,0 +1,18 @@
+{
+  "name": "BuildUploader.UnitTest.Apple",
+  "references": [
+    "VeugelJame.BuildUploader.Editor",
+    "veugeljame.builduploader.editor.services.apple",
+    "BuildUploader.UnitTest.Common"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "autoReferenced": false,
+  "defineConstraints": [
+    "UNITY_2022_3_OR_NEWER"
+  ]
+}

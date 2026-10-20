@@ -17,6 +17,8 @@ Before editing, read the file that matches your task.
 - Branches: `develop` stages work and takes PRs; `main` is the release (v3.3.0 at `c90f59e`).
 - Usually checked out as a git submodule at `Packages/com.veugeljame.builduploader` inside the host test
   project (JamesVeug/UnityBuildUploaderProject). Commit here first, then bump the gitlink there.
+  Current branch state, CI results and open bugs with root causes are tracked in that project's
+  `AgentDocs~/status.md`.
 
 ## Rules that are easy to break
 

@@ -14,13 +14,40 @@ row to [`UntestedFixes.md`](UntestedFixes.md) instead, saying what would make it
 | | `SdkInitializationTests` | Nothing | Steam, itch.io, Nintendo and PlayStation `Initialize` on fake SDK folders make their tools executable; Steam login status is cleared and kept per user |
 | | `SteamLoginProbeTests` (macOS, Linux) | Nothing | `SteamSDK.ProbeLoginAsync` against a fake `steamcmd.sh`: coloured output, Steam Guard, rate limit, Linux SteamCMD HOME, where the saved login is read |
 | | `EpicGamesUploadTests` (macOS, Linux) | Nothing | `EpicGames.Upload` against a fake BuildPatchTool: exec bit and secret passed by name |
+| | `NintendoUploadTests`, `PlayStationUploadTests` (macOS, Linux) | Nothing | One dummy file through `NintendoUploadDestination` / `PlayStationUploadDestination` and a fake upload tool (`FakeUploadTool`): arguments, command file, the file handed over, password hidden in the report, command file deleted in cleanup |
 | | `SteamDepotTests` | Nothing | Depot Ids never reused, labels with Depot IDs, missing/duplicate Depot ID errors in the app config and the Steam destination (#115, #116) |
 | | `ProjectSettingsTests` | Nothing | Build and upload numbers, and the Skip Number Updates setting that keeps `ProjectSettings.json` untouched (#109) |
 | `BuildUploader.UnitTest.Discord` | `DiscordMessageTests` | Nothing | `DiscordMessageChannelAction` dry run: serialized message and embed, no HTTP |
 | `BuildUploader.UnitTest.Itchio` | `ItchioWebGLTests` | Native Butler | `ItchioDestination` `push --dry-run` of an HTML fixture on channel `html5` |
 | `BuildUploader.UnitTest.Steam` | `SteamPreviewTests` | SteamCMD + authorized account | `SteamUploadDestination` preview upload, branch `none`; nothing goes live |
 | `BuildUploader.UnitTest.Builds` | `DesktopBuildTests` | Desktop build module | One player for the active Win64/macOS/Linux64 target through `BuildProfileSource` (Unity 6) or `BuildConfigSource` (2019/2022) into `LocalPathDestination` |
-| `BuildUploader.UnitTest.Common` | `TestSupport` | — | Helpers: `Run`, `Execute`, `Await`, `WaitUntil`, `OutputDirectory`, `FixtureDirectory`, `RequiredEnvironment` |
+| `BuildUploader.UnitTest.Destinations` | One fixture per destination, below | Service credentials | One dummy file uploaded to each live service, in its dry run when it has one. Not run by CI |
+| `BuildUploader.UnitTest.Apple` (Unity 2022.3+) | `AppleUploadDestinationTests` | App Store Connect API key | Same, for `AppleUploadDestination` (its package assembly needs 2022.3). Not run by CI |
+| `BuildUploader.UnitTest.Common` | `TestSupport`, `DestinationTestSupport` | — | Helpers: `Run`, `Execute`, `Await`, `WaitUntil`, `OutputDirectory`, `FixtureDirectory`, `RequiredEnvironment`; the dummy file, unique run names, OAuth token refresh |
+
+## One test per destination
+
+Each destination has one test that uploads a single dummy file. Service tests are ignored until their
+variables are set; [`DestinationCredentials.md`](DestinationCredentials.md) walks through getting each one.
+
+| Destination | Test | Dry run | What is left behind |
+| --- | --- | --- | --- |
+| Local Path | `UploadTaskTests.FileSourceCopiesOnlyThatFile` | Not needed (local copy) | Output under `TestResults/` |
+| Nowhere | `UploadTaskTests.TaskActionsFollowTriggerAndStatusOnSuccess` | Not needed | Nothing |
+| Itchio | `ItchioWebGLTests.OneWebGLDryUpload` | Butler `push --dry-run` | Nothing |
+| Steamworks | `SteamPreviewTests.OneSteamPreviewUpload` | SteamCMD preview build | Nothing goes live |
+| Nintendo | `NintendoUploadTests.OneDummyFileUploadsThroughAuthoringTool` | Fake AuthoringTool (SDK is under NDA) | Nothing |
+| PlayStation | `PlayStationUploadTests.OneDummyFileUploadsThroughPublishingTool` | Fake publishing tool (SDK is under NDA) | Nothing |
+| EpicGames | `EpicGamesUploadDestinationTests.OneDummyFileUnlabeledBinary` | None in BuildPatchTool; the binary is never labeled so players never see it | One unlabeled binary per run |
+| GithubNewRelease | `GithubNewReleaseDestinationTests.OneDummyFileDraftRelease` | None; uses a draft prerelease | Nothing (draft deleted) |
+| Dropbox | `DropboxDestinationTests.OneDummyFileUpload` | None; uploads, downloads, deletes | An empty `BuildUploaderTests` folder |
+| Google Drive | `GoogleDriveDestinationTests.OneDummyFileUpload` | None; uploads, downloads, deletes | Nothing |
+| Google Play | `GooglePlayDestinationTests.OneDummyBundleDryRun` | **Dry Run**: opens an edit, deletes it | Nothing |
+| Xbox | `XboxUploadDestinationTests.OneDummyFileDryRunSubmission` | **Dry Run**: uploads the package, deletes the submission | Nothing |
+| Apple TestFlight | `AppleUploadDestinationTests.OneDummyIpaDryRun` | **Dry Run**: reads the app, skips altool | Nothing |
+
+Google Play and Apple only accept signed builds, so their dry runs check credentials and the app without
+sending the dummy file.
 
 ## Configuration
 
@@ -31,6 +58,14 @@ row to [`UntestedFixes.md`](UntestedFixes.md) instead, saying what would make it
 | `BUILDUPLOADER_TEST_STEAM_USER`, `..._APP_ID`, `..._DEPOT_ID` | Dedicated build account, test app and depot |
 | `BUILDUPLOADER_TEST_STEAM_CREDENTIALS` | JSON map of SteamCMD credential files (see the host project's `.ci/README.md`) |
 | `BUILDUPLOADER_TEST_BUILD_PROFILE` | Unity 6: Build Profile asset for the active target, with an enabled scene |
+| `BUILDUPLOADER_TEST_GITHUB_TOKEN`, `..._GITHUB_REPOSITORY` | Fine-grained token with Contents read/write, and the test repository as `owner/name` |
+| `BUILDUPLOADER_TEST_GOOGLE_CLIENT_ID`, `..._CLIENT_SECRET`, `..._REFRESH_TOKEN` | Google OAuth client and refresh token (Drive, and Play when it has that scope) |
+| `BUILDUPLOADER_TEST_GOOGLE_PLAY_PACKAGE` | Package name of an app in Play Console |
+| `BUILDUPLOADER_TEST_DROPBOX_APP_KEY`, `..._APP_SECRET`, `..._REFRESH_TOKEN` | Dropbox app and refresh token |
+| `BUILDUPLOADER_TEST_EPIC_SDK` | BuildPatchTool folder containing `Engine/Binaries` |
+| `BUILDUPLOADER_TEST_EPIC_ORGANIZATION_ID`, `..._PRODUCT_ID`, `..._ARTIFACT_ID`, `..._CLIENT_ID`, `..._CLIENT_SECRET` | Epic BuildPatchTool credentials and a test artifact. BuildPatchTool reads the secret from the variable itself |
+| `BUILDUPLOADER_TEST_XBOX_TENANT_ID`, `..._CLIENT_ID`, `..._CLIENT_SECRET`, `..._PRODUCT_ID` | Microsoft Entra app added to Partner Center, and the Store ID |
+| `BUILDUPLOADER_TEST_APPLE_ISSUER_ID`, `..._KEY_ID`, `..._PRIVATE_KEY_PATH`, `..._APP_ID` | App Store Connect API key, its `.p8` file and the app's Apple ID |
 | `BUILDUPLOADER_TEST_REQUIRE_CONFIGURATION=1` | Missing configuration fails instead of being ignored (CI sets this) |
 
 - Steam authenticates even in preview mode. Use a dedicated depot and never run two uploads against one SDK
@@ -43,6 +78,9 @@ row to [`UntestedFixes.md`](UntestedFixes.md) instead, saying what would make it
 - Tests write under `<HostProject>/TestResults/BuildUploader/` and keep the output.
 - Tests temporarily change SDK paths, the Steam username and Build Uploader preferences, and restore them in
   `finally` / `TearDown`. A cached Steam login status of *Unknown* is not restored (it is cleared).
+- Destination tests put their token or secret in EditorPrefs under the app name `BuildUploaderUnitTest` (or the
+  project's GitHub token) for the length of the test, then put the previous value back. They enable the
+  service for the test and restore the flag.
 - Every task bumps `TotalUploadTasksStarted` and every build bumps `LastBuildNumber` in
   `<HostProject>/BuildUploader/ProjectSettings.json`. Run in a disposable copy or revert that file afterwards.
 
