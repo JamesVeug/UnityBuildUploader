@@ -122,8 +122,12 @@ namespace Wireframe
     public class SteamDepot : DropdownElement
     {
         public int Id => ID;
-        public string DisplayName => Name;
-        
+
+        /// <summary>
+        /// Name plus Steam depot ID, so depots that share a name stay distinguishable in popups (#115).
+        /// </summary>
+        public string DisplayName => $"{Name} ({(HasDepotID ? Depot.DepotID.ToString() : "no Depot ID")})";
+
         public int ID;
         public string Name = "Template";
         public DepotVDFFile Depot = new DepotVDFFile();
@@ -145,11 +149,6 @@ namespace Wireframe
             Name = currentDepot.Name;
             Depot = new DepotVDFFile(currentDepot.Depot);
         }
-
-        /// <summary>
-        /// Name plus Steam depot ID for popups, so depots that share a name stay distinguishable (#115).
-        /// </summary>
-        public string DisplayNameWithDepotID => $"{Name} ({(HasDepotID ? Depot.DepotID.ToString() : "no Depot ID")})";
 
         /// <summary>
         /// False until the user enters the numeric depot ID from Steamworks (#116).

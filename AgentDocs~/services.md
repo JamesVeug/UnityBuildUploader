@@ -40,8 +40,8 @@ public interface DropdownElement { int Id { get; } string DisplayName { get; } }
   **Never reuse an `Id`**: destinations look entities up by `Id`, so duplicates collapse into one (#115).
   `NextItemIndex` can still reuse the `Id` of a deleted last entry.
 - `DisplayName` is UI only and can change. `GenericMenu` cannot show two identical items, so when names may
-  repeat pass a unique label to `EditorUtils.DrawPopup(..., menuLabel, ...)` (depots use
-  `SteamDepot.DisplayNameWithDepotID`).
+  repeat make `DisplayName` unique (`SteamDepot` appends its Depot ID). String context keys such as
+  `{steamDepotName}` use the plain name.
 - Popups: `CustomDropdown<T>` (single) or `CustomMultiDropdown<TParent,TChild>` (hierarchical);
   `DrawPopup(ref T value, Context ctx, GUILayout.Width(n))` returns `isDirty`.
 

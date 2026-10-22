@@ -17,12 +17,12 @@ namespace Wireframe
         {
             if (m_uploadDepots != null && m_uploadDepots.Count > 0)
             {
-                return string.Join(",", m_uploadDepots.Select(a=>a.DisplayName));
+                return string.Join(",", m_uploadDepots.Select(a=>a.Name));
             }
 
             if (m_depots != null)
             {
-                return string.Join(",", m_depots.Select(a=>a.DisplayName));
+                return string.Join(",", m_depots.Select(a=>a.Name));
             }
 
             return "Unspecified Depots";

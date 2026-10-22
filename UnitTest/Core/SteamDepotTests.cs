@@ -44,9 +44,16 @@ namespace Wireframe.UnitTest
             SteamDepot first = Depot(1, "Windows", 1001);
             SteamDepot second = Depot(2, "Windows", 1002);
 
-            Assert.AreNotEqual(first.DisplayNameWithDepotID, second.DisplayNameWithDepotID);
-            Assert.AreEqual("Windows (1001)", first.DisplayNameWithDepotID);
-            Assert.AreEqual("Windows (no Depot ID)", new SteamDepot(3, "Windows").DisplayNameWithDepotID);
+            Assert.AreNotEqual(first.DisplayName, second.DisplayName);
+            Assert.AreEqual("Windows (1001)", first.DisplayName);
+            Assert.AreEqual("Windows (no Depot ID)", new SteamDepot(3, "Windows").DisplayName);
+        }
+
+        [Test]
+        public void DepotNameKeyLeavesOutTheDepotId()
+        {
+            var destination = new SteamUploadDestination(480, "none", 1001, 1002);
+            Assert.AreEqual("Template,Template", destination.Context.FormatString(Context.STEAM_DEPOT_NAME_KEY));
         }
 
         [Test]
