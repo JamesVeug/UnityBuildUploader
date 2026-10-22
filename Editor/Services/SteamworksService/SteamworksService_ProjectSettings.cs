@@ -48,7 +48,7 @@ namespace Wireframe
                     if (SteamUIUtils.ConfigPopup.DrawPopup(ref _current, m_context))
                     {
                         m_branchesList.Initialize(_current.ConfigBranches, "Branches", true, _ => { Save(); });
-                        m_depotsList.Initialize(_current.Depots, "Depots", true, _ => { Save(); });
+                        m_depotsList.Initialize(_current, "Depots", true, _ => { Save(); });
                     }
 
                     if (GUILayout.Button("New", GUILayout.Width(100)))
@@ -61,7 +61,7 @@ namespace Wireframe
                         SteamUIUtils.ConfigPopup.Refresh();
                         _current = config;
                         m_branchesList.Initialize(_current.ConfigBranches, "Branches", true, _ => { Save(); });
-                        m_depotsList.Initialize(_current.Depots, "Depots", true, _ => { Save(); });
+                        m_depotsList.Initialize(_current, "Depots", true, _ => { Save(); });
                     }
 
                     if (_current != null)

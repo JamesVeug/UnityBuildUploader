@@ -1,10 +1,19 @@
 ﻿using System;
+using System.Linq;
 using UnityEngine;
 
 namespace Wireframe
 {
     public class ReorderableListOfDepots : InternalReorderableList<SteamDepot>
     {
+        private SteamApp m_SteamApp;
+        
+        public void Initialize(SteamApp steamApp, string listHeader, bool foldoutStartsOpen, Action<SteamDepot> onAddCallback)
+        {
+            m_SteamApp = steamApp;
+            Initialize(steamApp.Depots, listHeader, foldoutStartsOpen, onAddCallback);
+        }
+        
         protected override void DrawItem(Rect rect, int index, bool isActive, bool isFocused)
         {
             SteamDepot element = list[index];
@@ -68,7 +77,18 @@ namespace Wireframe
 
         protected override SteamDepot CreateItem(int index)
         {
-            return new SteamDepot(index, "");
+            SteamDepot steamDepot = new SteamDepot(index, "");
+            if (list.Count > 0 && list.Any(a=>a.HasDepotID))
+            {
+                // +1 to last depot id
+                steamDepot.Depot.DepotID = list.Where(a=>a.HasDepotID).Max(a=> a.Depot.DepotID) + 1;
+            }
+            else if(m_SteamApp != null && m_SteamApp.App.appid > 0)
+            {
+                // +1 to steamapp id
+                steamDepot.Depot.DepotID = m_SteamApp.App.appid + 1;
+            }
+            return steamDepot;
         }
 
         protected override int CompareTo(SteamDepot a, SteamDepot b)
