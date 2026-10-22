@@ -9,7 +9,7 @@ namespace Wireframe
     /// <summary>
     /// What changed in the newer releases (or, for a git checkout, the new commits), a button to update and ways to
     /// stop being told about them.
-    /// Opens under the Build Uploader window's update button, or from Window->Build Uploader->Check for Updates.
+    /// Opens under the Build Uploader window's update button, or from Tools->Build Uploader->Check for Updates.
     /// </summary>
     internal class BuildUploaderUpdateWindow : EditorWindow
     {
@@ -521,7 +521,7 @@ namespace Wireframe
                 {
                     bool stop = EditorUtility.DisplayDialog("Build Uploader Updates",
                         "The Build Uploader will stop checking for new versions.\n\n" +
-                        "Check yourself from Window->Build Uploader->Check for Updates, or turn checking back on in " +
+                        "Check yourself from Tools->Build Uploader->Check for Updates, or turn checking back on in " +
                         "Preferences->Build Uploader->General.", "Stop Checking", "Cancel");
                     if (stop)
                     {

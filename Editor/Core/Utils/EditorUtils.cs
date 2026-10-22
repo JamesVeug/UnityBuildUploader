@@ -116,7 +116,7 @@ namespace Wireframe
             {
                 tooltipBuilder.AppendLine($"+{ignored} more...");
                 tooltipBuilder.AppendLine();
-                tooltipBuilder.AppendLine("For all format see the Wiki:\nWindow->Build Uploader->Welcome->Documentation");
+                tooltipBuilder.AppendLine("For all format see the Wiki:\nTools->Build Uploader->Welcome->Documentation");
             }
             
             return tooltipBuilder.ToString();

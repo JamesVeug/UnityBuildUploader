@@ -78,7 +78,7 @@ two action steps. If one with `StopTaskIfFailed` fails, the remaining "no" steps
   skips the remaining "no" steps, and a config post-action fails the Upload step. Cleanup and `OnTaskFinished`
   actions still run. Picking an action in the GUI (or `new UploadActionData(action, ...)`) copies
   `AUploadAction.DefaultStopTaskIfFailed`, which actions that later steps depend on override to true.
-- Past runs appear in **Window → Build Uploader → Open Upload Tasks Window**. There is no completion dialog
+- Past runs appear in **Tools → Build Uploader → Open Upload Tasks Window**. There is no completion dialog
   outside the GUI. To dry-run sources and modifiers without touching a service, use `NoUploadDestination`
   ("Nowhere") and turn off cache deletion.
 - The report is saved (if `Preferences.AutoSaveReportToCacheFolder`) only after all steps finish.

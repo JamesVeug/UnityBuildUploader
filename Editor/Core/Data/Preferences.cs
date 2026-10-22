@@ -30,7 +30,7 @@ namespace Wireframe
         internal const string WelcomeWindowPopupTooltip = "When the Welcome window should open on its own.\n\n" +
                                                           "On startup: Every time the Unity Editor opens this project.\n" +
                                                           "When updated: Only after the Build Uploader has been updated to a new version.\n" +
-                                                          "Never: Only when opened from Window->Build Uploader->Welcome.";
+                                                          "Never: Only when opened from Tools->Build Uploader->Welcome.";
 
         public static WelcomeWindowPopup ShowWelcomeWindow
         {
@@ -64,7 +64,7 @@ namespace Wireframe
                                                    "Only the list of releases (or commits, for a git submodule or clone) is downloaded; nothing about your project is sent.\n\n" +
                                                    "Weekly: When Unity opens, check if it's been a week, and show a button in the Build Uploader window when a new version is out.\n" +
                                                    "Monthly: The same, but only if it's been a month.\n" +
-                                                   "Never: Only check from Window->Build Uploader->Check for Updates.";
+                                                   "Never: Only check from Tools->Build Uploader->Check for Updates.";
 
         public static UpdateCheck CheckForUpdates
         {

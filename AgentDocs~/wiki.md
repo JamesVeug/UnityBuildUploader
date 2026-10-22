@@ -9,7 +9,7 @@ Read this before editing `[Wiki]` attributes, `Editor/Core/Wiki/`, or any page o
   `SubPath` is one of `"sources"`, `"modifiers"`, `"destinations"`, `"actions"`.
   `TryGetWikiLink(type, out url)` drives the in-editor "?" buttons.
 - `Editor/Core/Wiki/Wiki.cs` (only compiled with `BUILD_UPLOADER_WIKI`) adds
-  **Window → Build Uploader → Export Wiki Data** and **Open Wiki Export Folder**.
+  **Tools → Build Uploader → Export Wiki Data** and **Open Wiki Export Folder**.
 - Export rewrites `<HostProject>/Wiki/` (`Application.dataPath + "/../Wiki"`), the folder next to the
   host project's `Assets/`.
 
@@ -38,7 +38,7 @@ header is missing. New generated pages should use it.
 - `How-to-Create-a-new-Source.md` / `-Modifier.md` / `-Destination.md` — reference implementations
   (`LastBuildSource`, `CompressModifier`, `LocalPathDestination`). Mirror them when scaffolding.
 - `Starting-a-BuildTask-without-UI.md` — batch mode (`-uploadProfile`), generated menu items
-  (**Window → Build Uploader → Quick Upload → Generate Menu Items**, written under `Assets/ThirdParty`)
+  (**Tools → Build Uploader → Quick Upload → Generate Menu Items**, written under `Assets/ThirdParty`)
   and the C# API.
 - `Roadmap.md` — points at GitHub issues.
 

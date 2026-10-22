@@ -13,8 +13,9 @@ section of **Preferences → Build Uploader → General**.
   `EditorApplication.update` once scripts have compiled, not `delayCall`, which waits for a repaint that never
   comes when Unity opens in the background.
 - Nothing else checks on its own. **Check for Updates** checks right away.
-- Disclosed in the README's Security section, a line in the Welcome window and the Updates section of
-  Preferences. Keep them in step if what is sent changes.
+- Disclosed in the README's Security section and the Updates section of Preferences (its description and the
+  Check for updates tooltip). The Welcome window had a line too until `ab94070` shortened it. Keep them in step if
+  what is sent changes.
   - Most installs download `/releases` and compare release tags with the `version` in `package.json`. Kept in
     `Library/BuildUploader/Releases.json`.
   - Git checkouts (a submodule or clone: the package folder has `.git`) download `/commits?sha=<branch>`
@@ -29,7 +30,7 @@ section of **Preferences → Build Uploader → General**.
   - Git checkouts: each new commit's message, sha, author and date, the git command that updates the checkout,
     and **View Changes on GitHub** (the compare page). Nothing runs git.
   - Remind Me Later / Skip / Don't Notify Me Again.
-- **Window → Build Uploader → Check for Updates** (also in the window's ⋮ menu and Preferences) opens the same
+- **Tools → Build Uploader → Check for Updates** (also in the window's ⋮ menu and Preferences) opens the same
   window as a utility window and checks now, ignoring Skip, Remind Me Later, Never and the Asset Store delay.
 
 ## Install types (`PackageInstallSource`)

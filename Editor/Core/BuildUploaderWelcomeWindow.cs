@@ -285,7 +285,7 @@ namespace Wireframe {
                             new SettingsLinkGUIContent(projectSettingsText, "", "Project/Build Uploader/Services", SettingsScope.Project));
                     }
 
-                    GUILayout.Label("\nSetup Upload Profile (Window -> Build Uploader -> Open Window)", headerStyle);
+                    GUILayout.Label("\nSetup Upload Profile (Tools -> Build Uploader -> Open Window)", headerStyle);
                     using (new EditorGUILayout.VerticalScope(indentStyle))
                     {
                         DrawCheckList(
