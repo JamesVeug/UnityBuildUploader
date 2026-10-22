@@ -204,6 +204,8 @@ namespace Wireframe
 
                         menu.ShowAsContext();
                     }
+
+                    BuildUploaderWindow.DrawUpdateButton(GUI.skin.button, GUILayout.Height(20));
                 }
 
                 if (m_currentUploadProfile == null)

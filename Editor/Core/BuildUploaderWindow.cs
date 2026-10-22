@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Wireframe
 {
-    internal class BuildUploaderWindow : EditorWindow
+    internal class BuildUploaderWindow : EditorWindow, IHasCustomMenu
     {
         private const float SAVE_TIME_DELAY = 60 * 5; // 5 minutes 
         private const float EDIT_TIME_BEFORE_SAVE = 10; // 10 seconds 
@@ -27,6 +27,21 @@ namespace Wireframe
             uploaderWindow.titleContent = new GUIContent("Build Uploader", Utils.WindowIcon);
             uploaderWindow.InitializeTabs();
             uploaderWindow.Show();
+        }
+
+        private void OnEnable()
+        {
+            UpdateChecker.StateChanged += Repaint;
+        }
+
+        private void OnDisable()
+        {
+            UpdateChecker.StateChanged -= Repaint;
+        }
+
+        public void AddItemsToMenu(GenericMenu menu)
+        {
+            menu.AddItem(new GUIContent("Check for Updates"), false, BuildUploaderUpdateWindow.CheckForUpdates);
         }
 
         private void Update()
@@ -103,7 +118,18 @@ namespace Wireframe
             // Tabs
             if (m_tabs.Count(a=>a.Enabled) > 1)
             {
-                DrawTabs();
+                using (new GUILayout.HorizontalScope())
+                {
+                    DrawTabs();
+
+                    // The Upload tab draws the update button next to its settings icon. Other tabs have no
+                    // header for it, so it goes at the end of the tabs.
+                    if (!(CurrentTab is WindowUploadTab))
+                    {
+                        GUILayout.FlexibleSpace();
+                        DrawUpdateButton(EditorStyles.toolbarButton);
+                    }
+                }
             }
 
             using (new EditorGUILayout.VerticalScope("box"))
@@ -135,6 +161,48 @@ namespace Wireframe
                         }
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// A small button that opens the update window, drawn only when a new version is out.
+        /// </summary>
+        internal static void DrawUpdateButton(GUIStyle style, params GUILayoutOption[] options)
+        {
+            GUIContent content;
+            ReleaseInfo update = UpdateChecker.AvailableUpdate;
+            CommitUpdate commits = UpdateChecker.AvailableCommits;
+            if (commits != null)
+            {
+                int count = commits.NewCommits.Count;
+                string text = count == 1 ? "1 commit" : $"{count} commits";
+                content = new GUIContent(text, Utils.DownloadIcon,
+                    $"{text} on {commits.BranchLabel} on GitHub that you don't have. Click to see them.");
+            }
+            else if (update != null)
+            {
+                PackageInstallSource source = UpdateChecker.InstallSource;
+                string tooltip = source.FollowsBranch
+                    ? $"Build Uploader v{update.Version} is out. You follow the {source.GitRevision} branch. Click to see what changed and update."
+                    : $"Build Uploader v{update.Version} is available. Click to see what changed and update.";
+                content = new GUIContent("v" + update.Version, Utils.DownloadIcon, tooltip);
+            }
+            else
+            {
+                return;
+            }
+
+            Vector2 iconSize = EditorGUIUtility.GetIconSize();
+            EditorGUIUtility.SetIconSize(new Vector2(16, 16));
+            List<GUILayoutOption> layout = new List<GUILayoutOption>(options) { GUILayout.ExpandWidth(false) };
+            Rect rect = GUILayoutUtility.GetRect(content, style, layout.ToArray());
+            bool clicked = GUI.Button(rect, content, style);
+            EditorGUIUtility.SetIconSize(iconSize);
+
+            if (clicked)
+            {
+                Vector2 screenPosition = GUIUtility.GUIToScreenPoint(rect.position);
+                BuildUploaderUpdateWindow.ShowDropDown(new Rect(screenPosition, rect.size));
             }
         }
 

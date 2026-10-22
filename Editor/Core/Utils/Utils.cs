@@ -108,6 +108,7 @@ namespace Wireframe
         public static Texture2D CrossIcon => TryGetIcon(IsDarkMode ? "crossIcon.png" : "crossIconLight.png");
         public static Texture2D CrossIconSmall => TryGetIcon(IsDarkMode ? "crossIconSmall.png" : "crossIconSmallLight.png");
         public static Texture2D LinkIcon => TryGetIcon("linkIcon.png");
+        public static Texture2D DownloadIcon => TryGetIcon(IsDarkMode ? "DownloadIcon.png" : "DownloadIconLight.png");
 
         /// <summary>
         /// https://stackoverflow.com/questions/2281531/how-can-i-compare-directory-paths-in-c

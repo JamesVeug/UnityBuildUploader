@@ -1,4 +1,6 @@
-﻿using System.IO;
+﻿using System;
+using System.Globalization;
+using System.IO;
 using UnityEngine;
 using UnityEditor;
 
@@ -40,6 +42,96 @@ namespace Wireframe
         {
             get => ProjectEditorPrefs.GetString("BuildUploader_LastSeenWelcomeVersion", "");
             set => ProjectEditorPrefs.SetString("BuildUploader_LastSeenWelcomeVersion", value);
+        }
+
+        /// <summary>
+        /// EditorPrefs stores the number, so new options go at the end.
+        /// </summary>
+        public enum UpdateCheck
+        {
+            Weekly = 0,
+            Never = 1,
+            Monthly = 2,
+        }
+
+        /// <summary>
+        /// In the order the popup lists them, with their values in <see cref="UpdateCheckOptionValues"/>.
+        /// </summary>
+        internal static readonly string[] UpdateCheckOptions = { "Weekly", "Monthly", "Never" };
+        internal static readonly int[] UpdateCheckOptionValues = { (int)UpdateCheck.Weekly, (int)UpdateCheck.Monthly, (int)UpdateCheck.Never };
+
+        internal const string UpdateCheckTooltip = "How often to ask GitHub for new versions of the Build Uploader. " +
+                                                   "Only the list of releases (or commits, for a git submodule or clone) is downloaded; nothing about your project is sent.\n\n" +
+                                                   "Weekly: When Unity opens, check if it's been a week, and show a button in the Build Uploader window when a new version is out.\n" +
+                                                   "Monthly: The same, but only if it's been a month.\n" +
+                                                   "Never: Only check from Window->Build Uploader->Check for Updates.";
+
+        public static UpdateCheck CheckForUpdates
+        {
+            get => (UpdateCheck)EditorPrefs.GetInt("BuildUploader_CheckForUpdates", (int)UpdateCheck.Weekly);
+            set => EditorPrefs.SetInt("BuildUploader_CheckForUpdates", (int)value);
+        }
+
+        /// <summary>
+        /// For git checkouts: the newest commit the user chose to skip. Only newer commits show the update button.
+        /// </summary>
+        public static string SkippedUpdateCommit
+        {
+            get => EditorPrefs.GetString("BuildUploader_SkippedUpdateCommit", "");
+            set => EditorPrefs.SetString("BuildUploader_SkippedUpdateCommit", value);
+        }
+
+        /// <summary>
+        /// The GitHub branch the cached commits came from ("" for the default branch).
+        /// </summary>
+        public static string UpdateCommitsBranch
+        {
+            get => ProjectEditorPrefs.GetString("BuildUploader_UpdateCommitsBranch", "");
+            set => ProjectEditorPrefs.SetString("BuildUploader_UpdateCommitsBranch", value);
+        }
+
+        /// <summary>
+        /// The version the user chose to skip. Only newer versions show the update button.
+        /// </summary>
+        public static string SkippedUpdateVersion
+        {
+            get => EditorPrefs.GetString("BuildUploader_SkippedUpdateVersion", "");
+            set => EditorPrefs.SetString("BuildUploader_SkippedUpdateVersion", value);
+        }
+
+        /// <summary>
+        /// Remind Me Later hides the update button until this time.
+        /// </summary>
+        public static DateTime UpdateRemindAfterUtc
+        {
+            get => ReadUtcTicks(EditorPrefs.GetString("BuildUploader_UpdateRemindAfter", ""));
+            set => EditorPrefs.SetString("BuildUploader_UpdateRemindAfter", value.Ticks.ToString(CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// The last time this project downloaded the list of releases or commits.
+        /// </summary>
+        public static DateTime LastUpdateCheckUtc
+        {
+            get => ReadUtcTicks(ProjectEditorPrefs.GetString("BuildUploader_LastUpdateCheck", ""));
+            set => ProjectEditorPrefs.SetString("BuildUploader_LastUpdateCheck", value.Ticks.ToString(CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// The last time downloading the list of releases or commits failed, so being offline doesn't retry on every script reload.
+        /// </summary>
+        public static DateTime LastFailedUpdateCheckUtc
+        {
+            get => ReadUtcTicks(ProjectEditorPrefs.GetString("BuildUploader_LastFailedUpdateCheck", ""));
+            set => ProjectEditorPrefs.SetString("BuildUploader_LastFailedUpdateCheck", value.Ticks.ToString(CultureInfo.InvariantCulture));
+        }
+
+        private static DateTime ReadUtcTicks(string ticks)
+        {
+            return long.TryParse(ticks, NumberStyles.Integer, CultureInfo.InvariantCulture, out long value) &&
+                   value >= DateTime.MinValue.Ticks && value <= DateTime.MaxValue.Ticks
+                ? new DateTime(value, DateTimeKind.Utc)
+                : DateTime.MinValue;
         }
 
         public static bool DeleteCacheAfterUpload

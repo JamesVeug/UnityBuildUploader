@@ -155,6 +155,8 @@ This package does NOT distribute any personal information. Any information enter
 
 Keeping your credentials safe is important to me!
 
+**Update checks:** when Unity opens, at most once a week (or a month, if you choose), the Build Uploader asks GitHub whether a newer version is out. It only downloads the list of releases (or, for a git submodule or clone, the newest commits on its branch). Nothing about your project is sent. Turn it off in `Edit -> Preferences -> Build Uploader -> General -> Updates`.
+
 If you discover any security related issues, please email me, message on discord or create an issue on [github.](https://github.com/JamesVeug/UnityBuildUploader)
 
 

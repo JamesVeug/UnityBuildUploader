@@ -9,20 +9,6 @@ using Object = UnityEngine.Object;
 namespace Wireframe {
     public class BuildUploaderWelcomeWindow : EditorWindow
     {
-        private class VersionData
-        {
-            public string title;
-            public bool foldoutOpen;
-            public string[] lines;
-            
-            public VersionData(string title, string[] lines)
-            {
-                this.title = title;
-                this.lines = lines;
-                foldoutOpen = false;
-            }
-        }
-
         private struct ServiceStatus
         {
             public AService Service;
@@ -36,15 +22,13 @@ namespace Wireframe {
         private GUIStyle sectionLabelStyle;
         private GUIStyle sectionFoldoutStyle;
         private GUIStyle changeFoldoutStyle;
-        private GUIStyle changeLineStyle;
-        private GUIStyle changeSubHeaderStyle;
         private GUIStyle headerStyle;
         private GUIStyle indentStyle;
         private GUIStyle indentedBoxStyle;
         private GUIStyle exampleStyle;
         private Vector2 scrollPosition;
 
-        private List<VersionData> parsedChangeLog;
+        private List<ChangelogMarkdown.Entry> parsedChangeLog;
         private int newVersionCount;
         private string lastSeenVersion;
 
@@ -102,6 +86,7 @@ namespace Wireframe {
             GUILayout.Label("- Want to support the project? Check it out on the Unity Asset Store or press Support Me!");
             GUILayout.Label("- Uploading from CI or a build machine? See the CLI/CI Docs to run uploads without the UI!");
             GUILayout.Label("- Want to upload with a single click? Use Window->Build Uploader->Quick Upload->Generate Menu Items.");
+            GUILayout.Label("- Checks GitHub for new versions when Unity opens (weekly or monthly); nothing about your project is sent. Turn off in Preferences.");
 
             EditorGUILayout.Space(20);
 
@@ -392,13 +377,6 @@ namespace Wireframe {
             changeFoldoutStyle = new GUIStyle(EditorStyles.foldout);
             changeFoldoutStyle.fontSize = 18;
 
-            changeLineStyle = new GUIStyle(GUI.skin.label);
-            changeLineStyle.richText = true;
-
-            changeSubHeaderStyle = new GUIStyle(EditorStyles.boldLabel);
-            changeSubHeaderStyle.richText = true;
-            changeSubHeaderStyle.fontSize = 16;
-
             headerStyle = new GUIStyle(GUI.skin.label);
             headerStyle.fontStyle = FontStyle.Bold;
 
@@ -419,54 +397,9 @@ namespace Wireframe {
             string path = Path.Combine(Utils.s_packagePath, "CHANGELOG.md");
             Object loadAssetAtPath = AssetDatabase.LoadAssetAtPath(path, typeof(TextAsset));
             string allText = loadAssetAtPath is TextAsset textAsset ? textAsset.text : "";
-            string[] lines = allText.Split('\n');
-            
-            // group by any that start with '# '
-            parsedChangeLog = new List<VersionData>();
-            int headerIndex = -1;
-            for (int i = 0; i <= lines.Length; i++)
-            {
-                // Going one past the last line so the final version in the file is added too.
-                bool endOfFile = i == lines.Length;
-                if (!endOfFile && !lines[i].StartsWith("# "))
-                {
-                    continue;
-                }
-
-                if (headerIndex >= 0)
-                {
-                    string title = "v" + lines[headerIndex].Substring(1).Trim();
-                    parsedChangeLog.Add(new VersionData(title, GetEntryLines(lines, headerIndex + 1, i - 1)));
-                }
-
-                headerIndex = i;
-            }
+            parsedChangeLog = ChangelogMarkdown.Parse(allText);
 
             OpenNewVersions();
-        }
-
-        /// <summary>
-        /// All lines of a version with any blank lines padding the start and end removed.
-        /// </summary>
-        private static string[] GetEntryLines(string[] lines, int start, int end)
-        {
-            while (start <= end && lines[start].Trim().Length == 0)
-            {
-                start++;
-            }
-
-            while (end >= start && lines[end].Trim().Length == 0)
-            {
-                end--;
-            }
-
-            List<string> entryLines = new List<string>();
-            for (int i = start; i <= end; i++)
-            {
-                entryLines.Add(lines[i]);
-            }
-
-            return entryLines.ToArray();
         }
 
         /// <summary>
@@ -482,11 +415,11 @@ namespace Wireframe {
 
             if (Version.TryParse(Utils.ToSemantic(lastSeenVersion ?? ""), out Version lastSeen))
             {
-                foreach (VersionData data in parsedChangeLog)
+                foreach (ChangelogMarkdown.Entry data in parsedChangeLog)
                 {
-                    if (Version.TryParse(Utils.ToSemantic(data.title), out Version version) && version > lastSeen)
+                    if (Version.TryParse(Utils.ToSemantic(data.Title), out Version version) && version > lastSeen)
                     {
-                        data.foldoutOpen = true;
+                        data.FoldoutOpen = true;
                         newVersionCount++;
                     }
                 }
@@ -494,7 +427,7 @@ namespace Wireframe {
             else
             {
                 // Never opened this window before (or an unexpected version) so only show the latest changes.
-                parsedChangeLog[0].foldoutOpen = true;
+                parsedChangeLog[0].FoldoutOpen = true;
                 newVersionCount = 1;
             }
         }
@@ -503,17 +436,17 @@ namespace Wireframe {
         {
             for (int i = 0; i < parsedChangeLog.Count; i++)
             {
-                VersionData data = parsedChangeLog[i];
-                data.foldoutOpen = EditorGUILayout.Foldout(data.foldoutOpen, data.title, true, changeFoldoutStyle);
-                if (!data.foldoutOpen)
+                ChangelogMarkdown.Entry data = parsedChangeLog[i];
+                data.FoldoutOpen = EditorGUILayout.Foldout(data.FoldoutOpen, data.Title, true, changeFoldoutStyle);
+                if (!data.FoldoutOpen)
                 {
                     continue;
                 }
-                
+
                 EditorGUI.indentLevel++;
                 using (new EditorGUILayout.VerticalScope("box"))
                 {
-                    Draw(data.lines);
+                    ChangelogMarkdown.Draw(data.Lines);
                 }
                 EditorGUI.indentLevel--;
                 
@@ -523,118 +456,6 @@ namespace Wireframe {
                     GUILayout.Box("", GUILayout.ExpandWidth(true), GUILayout.Height(1));
                     GUILayout.Space(10);
                 }
-            }
-        }
-
-        private void Draw(string[] lines)
-        {
-            // Draw allText as markdown
-            // # is header
-            // - bullet point
-            for (int i = 0; i < lines.Length; i++)
-            {
-                GUIStyle style = changeLineStyle;
-
-                // Get text and style based on the line content
-                string line = lines[i];
-                if (string.IsNullOrEmpty(line))
-                {
-                    line = "";
-                }
-                else if (line.StartsWith("##"))
-                {
-                    // Sub-Header
-                    line = line.Substring(2).Trim();
-                    style = changeSubHeaderStyle;
-                }
-                else if (line.StartsWith("#"))
-                {
-                    // Header
-                    line = line.Substring(1).Trim();
-                    style = headerLabelStyle;
-                }
-                else if (line.Trim().StartsWith("-"))
-                {
-                    // Bullet point
-                    int indents = Mathf.CeilToInt(line.IndexOf('-') / 2f);
-
-                    int artificialIndent = (indents + 1) * 10;
-                    line = new string(' ', artificialIndent) + line.Trim().Substring(1).Trim();
-                    // line = line.Substring(1).Trim();
-                    // GUILayout.Label($"- {bulletText}");
-                }
-                
-                // replace **XXXX** with <b>XXXX</b>
-                int boldStartIndex = line.IndexOf("**");
-                while (boldStartIndex != -1)
-                {
-                    int boldEndIndex = line.IndexOf("**", boldStartIndex + 2);
-                    if (boldEndIndex == -1)
-                    {
-                        break; // No closing bold found
-                    }
-
-                    string boldText = line.Substring(boldStartIndex + 2, boldEndIndex - boldStartIndex - 2);
-                    string coloredBoldText = $"<b>{boldText}</b>";
-                    line = line.Replace($"**{boldText}**", coloredBoldText);
-                    
-                    boldStartIndex = line.IndexOf("**", boldEndIndex + 2);
-                }
-                
-                
-                // replace `XXXX` with colorization
-                int startIndex = line.IndexOf('`');
-                while (startIndex != -1)
-                {
-                    int endIndex = line.IndexOf('`', startIndex + 1);
-                    if (endIndex == -1)
-                    {
-                        break; // No closing backtick found
-                    }
-
-                    string codeSnippet = line.Substring(startIndex + 1, endIndex - startIndex - 1);
-                    string color = Utils.IsDarkMode ? "#FFFB00" : "#7F7900";
-                    string coloredSnippet = $"<color={color}>{codeSnippet}</color>";
-                    line = line.Replace($"`{codeSnippet}`", coloredSnippet);
-                    
-                    startIndex = line.IndexOf('`', endIndex + 1);
-                }
-                
-                // replace [docs](XXX) with a button
-                int linkStartIndex = line.IndexOf('[');
-                if (linkStartIndex != -1)
-                {
-                    int linkEndIndex = line.IndexOf(']', linkStartIndex + 1);
-                    if (linkEndIndex > -1)
-                    {
-
-                        int urlStartIndex = line.IndexOf('(', linkEndIndex + 1);
-                        if (urlStartIndex > -1)
-                        {
-
-                            int urlEndIndex = line.IndexOf(')', urlStartIndex + 1);
-                            if (urlEndIndex > -1)
-                            {
-
-                                string linkText = line.Substring(linkStartIndex + 1, linkEndIndex - linkStartIndex - 1);
-                                string url = line.Substring(urlStartIndex + 1, urlEndIndex - urlStartIndex - 1);
-
-                                line = line.Replace($"[{linkText}]({url})",
-                                    $"<b><color=blue><u>{linkText}</u></color></b>");
-                                if (GUILayout.Button(line, style))
-                                {
-                                    Application.OpenURL(url);
-                                }
-                                continue;
-                            }
-                        }
-                    }
-                }
-
-
-                // Selectable so it can be copied but not editable like a text field looks.
-                float height = style.CalcHeight(new GUIContent(line), EditorGUIUtility.currentViewWidth);
-                EditorGUILayout.SelectableLabel(line, style, GUILayout.Height(height));
             }
         }
 

@@ -50,6 +50,7 @@ Before editing, read the file that matches your task.
 | Services | `Editor/Services/<Name>Service/` (Slack is the reference) |
 | Integrations | `Editor/Integrations/UnityPipeline/` (the `unity` CLI), `Editor/Integrations/Addressables/` (Build Addressables) |
 | Wiki export | `Editor/Core/Wiki/` |
+| Update notifications | `Editor/Core/Updates/` |
 | Tests | `UnitTest/` — see `UnitTest/README.md` |
 
 ## Read before you change...
@@ -61,6 +62,7 @@ Before editing, read the file that matches your task.
 | A service, settings UI, prefs/storage, HTTP, JSON | `AgentDocs~/services.md` |
 | Batch mode or the `unity` CLI command | `AgentDocs~/cli-and-batch-mode.md` |
 | `[Wiki]` attributes or wiki pages | `AgentDocs~/wiki.md` |
+| Update notifications, the update button, Check for Updates | `AgentDocs~/updates.md` |
 | Tests | `UnitTest/README.md` |
 
 ## Verifying a change

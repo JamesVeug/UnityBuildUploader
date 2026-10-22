@@ -19,7 +19,7 @@ namespace Wireframe
                     label = "General",
                     keywords = new HashSet<string>(new[]
                     {
-                        "Build", "Uploader", "Build Uploader", "BuildUploader", "Pipe", "line", "Pipe line", "Pipeline", "Cache"
+                        "Build", "Uploader", "Build Uploader", "BuildUploader", "Pipe", "line", "Pipe line", "Pipeline", "Cache", "Update", "Version"
                     }),
                 };
 
@@ -274,6 +274,89 @@ namespace Wireframe
                 if (newShowReport != Preferences.ShowReportAfterUpload)
                 {
                     Preferences.ShowReportAfterUpload = newShowReport;
+                }
+            }
+
+            DrawUpdates();
+        }
+
+        private void DrawUpdates()
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Updates", EditorStyles.boldLabel);
+            GUILayout.Label("When Unity opens, at most as often as set below, the Build Uploader asks GitHub whether a newer version is out. " +
+                            "It only downloads the list of releases (or, for a git submodule or clone, the newest commits on its branch). " +
+                            "Nothing about your project is sent.", EditorStyles.wordWrappedLabel);
+
+            using (new GUILayout.HorizontalScope())
+            {
+                EditorGUILayout.LabelField(new GUIContent("Check for updates", Preferences.UpdateCheckTooltip), GUILayout.Width(200));
+
+                int checkForUpdates = (int)Preferences.CheckForUpdates;
+                int newCheckForUpdates = EditorGUILayout.IntPopup(checkForUpdates, Preferences.UpdateCheckOptions, Preferences.UpdateCheckOptionValues);
+                if (newCheckForUpdates != checkForUpdates)
+                {
+                    Preferences.CheckForUpdates = (Preferences.UpdateCheck)newCheckForUpdates;
+                    UpdateChecker.NotifyChanged();
+                }
+            }
+
+            string skippedVersion = Preferences.SkippedUpdateVersion;
+            if (!string.IsNullOrEmpty(skippedVersion))
+            {
+                using (new GUILayout.HorizontalScope())
+                {
+                    EditorGUILayout.LabelField(new GUIContent("Skipped version", "No update button for this version or older."),
+                        GUILayout.Width(200));
+                    GUILayout.Label("v" + skippedVersion);
+                    if (GUILayout.Button("Clear", GUILayout.Width(60)))
+                    {
+                        Preferences.SkippedUpdateVersion = "";
+                        UpdateChecker.NotifyChanged();
+                    }
+                }
+            }
+
+            string skippedCommit = Preferences.SkippedUpdateCommit;
+            if (!string.IsNullOrEmpty(skippedCommit))
+            {
+                using (new GUILayout.HorizontalScope())
+                {
+                    EditorGUILayout.LabelField(new GUIContent("Skipped commits", "For a git submodule or clone: no update button until a commit newer than this one."),
+                        GUILayout.Width(200));
+                    GUILayout.Label("Up to " + CommitInfo.ShortenSha(skippedCommit));
+                    if (GUILayout.Button("Clear", GUILayout.Width(60)))
+                    {
+                        Preferences.SkippedUpdateCommit = "";
+                        UpdateChecker.NotifyChanged();
+                    }
+                }
+            }
+
+            DateTime remindAfter = Preferences.UpdateRemindAfterUtc;
+            if (remindAfter > DateTime.UtcNow)
+            {
+                using (new GUILayout.HorizontalScope())
+                {
+                    EditorGUILayout.LabelField(new GUIContent("Remind me after", "Remind Me Later hides the update button until then."),
+                        GUILayout.Width(200));
+                    GUILayout.Label(remindAfter.ToLocalTime().ToString("g"));
+                    if (GUILayout.Button("Clear", GUILayout.Width(60)))
+                    {
+                        Preferences.UpdateRemindAfterUtc = DateTime.MinValue;
+                        UpdateChecker.NotifyChanged();
+                    }
+                }
+            }
+
+            using (new GUILayout.HorizontalScope())
+            {
+                EditorGUILayout.LabelField(new GUIContent("Installed version", "The version in this project and how it was added."),
+                    GUILayout.Width(200));
+                GUILayout.Label($"v{Utils.PackageVersion} from {UpdateChecker.InstallSource.Describe()}");
+                if (GUILayout.Button("Check Now", GUILayout.Width(100)))
+                {
+                    BuildUploaderUpdateWindow.CheckForUpdates();
                 }
             }
         }
