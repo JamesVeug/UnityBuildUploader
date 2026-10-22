@@ -14,7 +14,7 @@ namespace Wireframe
     {
         private const int AutoRefreshTime = 60;
 
-        [MenuItem("Window/Build Uploader/Open Unity Cloud Window")]
+        [MenuItem("Tools/Build Uploader/Open Unity Cloud Window")]
         public static void ShowWindow()
         {
             UnityCloudWindow window = GetWindow<UnityCloudWindow>();
@@ -22,7 +22,7 @@ namespace Wireframe
             window.Show();
         }
 
-        [MenuItem("Window/Build Uploader/Open Unity Cloud Window", true)]
+        [MenuItem("Tools/Build Uploader/Open Unity Cloud Window", true)]
         public static bool ShouldShowWindow()
         {
             return UnityCloud.Enabled;

@@ -12,7 +12,7 @@ namespace Wireframe
         private string txt;
         private Vector2 scroll;
 
-        [MenuItem("Window/Build Uploader/Upload Reports")]
+        [MenuItem("Tools/Build Uploader/Upload Reports")]
         private static void ShowWindow()
         {
             ShowWindow(null, null);

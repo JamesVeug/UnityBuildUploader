@@ -25,7 +25,7 @@ namespace Wireframe
             public List<Type> Types = new List<Type>();
         }
         
-        [MenuItem("Window/Build Uploader/Open Wiki Export Folder")]
+        [MenuItem("Tools/Build Uploader/Open Wiki Export Folder")]
         public static void OpenWikiExportFolder()
         {
             string wikiPath = Path.Combine(Application.dataPath, "../Wiki");
@@ -37,7 +37,7 @@ namespace Wireframe
             EditorUtility.RevealInFinder(wikiPath);
         }
         
-        [MenuItem("Window/Build Uploader/Export Wiki Data")]
+        [MenuItem("Tools/Build Uploader/Export Wiki Data")]
         public static void ExportWikiData()
         {
             List<Data> allData = new List<Data>();

@@ -47,7 +47,7 @@ namespace Wireframe
             return data;
         }
 
-		[MenuItem("Window/Build Uploader/Other/Reload Build Profiles")]
+		[MenuItem("Tools/Build Uploader/Other/Reload Build Profiles")]
         private static void LoadAll()
         {
             data = new List<BuildProfileWrapper>();

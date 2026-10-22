@@ -32,7 +32,7 @@ namespace Wireframe
         private GUIStyle m_commitSubjectStyle;
         private GUIStyle m_commitBodyStyle;
 
-        [MenuItem("Window/Build Uploader/Check for Updates")]
+        [MenuItem("Tools/Build Uploader/Check for Updates")]
         public static void CheckForUpdates()
         {
             BuildUploaderUpdateWindow window = GetWindow<BuildUploaderUpdateWindow>(true, "Build Uploader Updates", true);

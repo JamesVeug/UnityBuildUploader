@@ -26,7 +26,7 @@ namespace Wireframe
             }
         }
 
-        [MenuItem("Window/Build Uploader/Quick Upload/Generate Menu Items", false, 2000)]
+        [MenuItem("Tools/Build Uploader/Quick Upload/Generate Menu Items", false, 2000)]
         private static void GenerateMenuItems()
         {
             GenerateMenuItems(true);
@@ -61,7 +61,7 @@ namespace Wireframe
                 }
                 
                 var data = profiles[i];
-                string menuitemName = $"Window/Build Uploader/Quick Upload/{totalDone}. {data.ProfileName}";
+                string menuitemName = $"Tools/Build Uploader/Quick Upload/{totalDone}. {data.ProfileName}";
                 sb.AppendLine($"        [UnityEditor.MenuItem(\"{menuitemName}\")]");
                 sb.AppendLine($"        public static void BuildUploader_QuickUpload_{data.GUID}()");
                 sb.AppendLine($"        {{");

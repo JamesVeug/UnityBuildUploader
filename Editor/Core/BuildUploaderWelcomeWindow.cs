@@ -35,7 +35,7 @@ namespace Wireframe {
         private List<ServiceStatus> serviceStatuses;
         private DateTime serviceStatusesTime = DateTime.MinValue;
 
-        [MenuItem("Window/Build Uploader/Welcome")]
+        [MenuItem("Tools/Build Uploader/Welcome")]
         public static void ShowWindow()
         {
             bool alreadyOpen = Resources.FindObjectsOfTypeAll<BuildUploaderWelcomeWindow>().Length > 0;

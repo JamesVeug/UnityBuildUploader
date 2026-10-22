@@ -16,7 +16,7 @@ namespace Wireframe
             public string FullPath;
         }
         
-        [MenuItem("Window/Build Uploader/Open Upload Tasks Window")]
+        [MenuItem("Tools/Build Uploader/Open Upload Tasks Window")]
         public static void ShowWindow()
         {
             FocusTask(null);
