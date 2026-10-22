@@ -14,6 +14,12 @@ namespace Wireframe
         public Context Context => m_context;
         protected Context m_context;
 
+        /// <summary>
+        /// Whether "Stop task if this fails" starts on when the user picks this action.
+        /// Override to return true for actions that later steps depend on, such as building content before a build.
+        /// </summary>
+        public virtual bool DefaultStopTaskIfFailed => false;
+
         public AUploadAction()
         {
             m_context = CreateContext();

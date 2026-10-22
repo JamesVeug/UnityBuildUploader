@@ -82,9 +82,9 @@ namespace Wireframe
         {
             bool success = await ExecuteDestinations(uploadTask, configIndex, destinations, report, token);
 
-            await uploadTask.ExecuteActions(success, null, actions, $"Post Config {configIndex} Action");
+            bool actionsSuccessful = await uploadTask.ExecuteActions(success, null, actions, $"Post Config {configIndex} Action");
 
-            return success;
+            return success && actionsSuccessful;
         }
         
         private async Task<bool> ExecuteDestinations(UploadTask uploadTask, int configIndex,

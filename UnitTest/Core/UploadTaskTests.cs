@@ -212,6 +212,114 @@ namespace Wireframe.UnitTest
         }
 
         [UnityTest]
+        public IEnumerator StartActionReturningFalseStopsTaskWhenSet()
+        {
+            yield return FailedStartActionSetToStopTaskSkipsBuildAndUpload(UnitTestFailingAction.FailureMode.ExecuteReturnsFalse);
+        }
+
+        [UnityTest]
+        public IEnumerator StartActionThrowingStopsTaskWhenSet()
+        {
+            yield return FailedStartActionSetToStopTaskSkipsBuildAndUpload(UnitTestFailingAction.FailureMode.ExecuteThrows);
+        }
+
+        [UnityTest]
+        public IEnumerator StartActionFailingToPrepareStopsTaskWhenSet()
+        {
+            yield return FailedStartActionSetToStopTaskSkipsBuildAndUpload(UnitTestFailingAction.FailureMode.PrepareReturnsFalse);
+        }
+
+        private IEnumerator FailedStartActionSetToStopTaskSkipsBuildAndUpload(UnitTestFailingAction.FailureMode mode)
+        {
+            string source = Fixture("StopTask" + mode, "root.txt", "root");
+            string output = Output("StopTask" + mode);
+            var destination = new UnitTestGateDestination();
+            UploadConfig config = Config(new FolderSource(source), new LocalPathDestination(output));
+            config.AddDestination(destination);
+            var task = new UploadTask("Core stop task " + mode, config);
+            var failing = new UnitTestFailingAction(mode);
+            task.AddAction(new UploadConfig.UploadActionData(failing, Status.Always, Trigger.OnTaskStarted) { StopTaskIfFailed = true });
+            var ifFailed = new UnitTestRecordingAction();
+            task.AddAction(new UploadConfig.UploadActionData(ifFailed, Status.IfFailed, Trigger.OnTaskFinished));
+            destination.Release(true); // Never reached, but must not block the test if it were
+
+            yield return Execute(task);
+
+            Assert.IsFalse(task.IsSuccessful);
+            AssertFailedAt(task, StepType.PreUploadActions, "UnitTestFailingAction");
+            Assert.IsFalse(task.Report.StepResults.ContainsKey(StepType.GetSources), "Sources must not be fetched or built after a failed start action.\n" + task.Report.GetReport());
+            Assert.IsFalse(task.Report.StepResults.ContainsKey(StepType.Upload), "Nothing may be uploaded after a failed start action.");
+            Assert.IsFalse(destination.HasEntered);
+            Assert.IsFalse(Directory.Exists(output), "Nothing may be written to the destination.");
+            Assert.IsTrue(task.Report.StepResults.ContainsKey(StepType.Cleanup), "Cleanup must always run.");
+            Assert.AreEqual(1, destination.CleanUpCount, "Destinations are cleaned up after the task stops.");
+            Assert.AreEqual(1, failing.CleanUpCount, "The failed action is cleaned up.");
+            Assert.AreEqual(1, ifFailed.ExecuteCount, "IfFailed actions run when an action stops the task.");
+        }
+
+        [UnityTest]
+        public IEnumerator StartActionReturningFalseDoesNotStopTaskByDefault()
+        {
+            yield return FailedStartActionNotSetToStopTaskStillUploads(UnitTestFailingAction.FailureMode.ExecuteReturnsFalse);
+        }
+
+        [UnityTest]
+        public IEnumerator StartActionThrowingDoesNotStopTaskByDefault()
+        {
+            yield return FailedStartActionNotSetToStopTaskStillUploads(UnitTestFailingAction.FailureMode.ExecuteThrows);
+        }
+
+        private IEnumerator FailedStartActionNotSetToStopTaskStillUploads(UnitTestFailingAction.FailureMode mode)
+        {
+            string source = Fixture("KeepGoing" + mode, "root.txt", "root");
+            string output = Output("KeepGoing" + mode);
+            var task = new UploadTask("Core keep going " + mode, Config(new FolderSource(source), new LocalPathDestination(output)));
+            var failing = new UnitTestFailingAction(mode);
+            var actionData = new UploadConfig.UploadActionData(failing, Status.Always, Trigger.OnTaskStarted);
+            Assert.IsFalse(actionData.StopTaskIfFailed, "Actions do not stop the task unless they ask to.");
+            task.AddAction(actionData);
+
+            yield return Run(task);
+
+            Assert.AreEqual(1, failing.ExecuteCount);
+            Assert.AreEqual("root", File.ReadAllText(Path.Combine(output, "root.txt")), "Without the flag a failed action changes nothing.");
+        }
+
+        [UnityTest]
+        public IEnumerator FailedEachStepActionSetToStopTaskSkipsRemainingSteps()
+        {
+            string source = Fixture("StopEachStep", "root.txt", "root");
+            string output = Output("StopEachStep");
+            var task = new UploadTask("Core stop after step", Config(new FolderSource(source), new LocalPathDestination(output)));
+            var failing = new UnitTestFailingAction(UnitTestFailingAction.FailureMode.ExecuteReturnsFalse);
+            task.AddAction(new UploadConfig.UploadActionData(failing, Status.Always, Trigger.AfterEachStepCompletes) { StopTaskIfFailed = true });
+
+            yield return Execute(task);
+
+            Assert.IsFalse(task.IsSuccessful);
+            Assert.IsFalse(task.Report.StepResults.ContainsKey(StepType.Upload), "The steps after the first failed action must be skipped.\n" + task.Report.GetReport());
+            Assert.IsFalse(Directory.Exists(output), "Nothing may be uploaded.");
+            Assert.IsTrue(task.Report.StepResults.ContainsKey(StepType.Cleanup), "Cleanup must always run.");
+        }
+
+        [UnityTest]
+        public IEnumerator FailedConfigActionSetToStopTaskFailsTask()
+        {
+            string source = Fixture("StopConfigAction", "root.txt", "root");
+            UploadConfig config = Config(new FolderSource(source), new NoUploadDestination());
+            config.AddPostAction(new UploadConfig.UploadActionData(new UnitTestFailingAction(), Status.Always) { StopTaskIfFailed = true });
+            var task = new UploadTask("Core stop config action", config);
+            var ifSuccessful = new UnitTestRecordingAction();
+            task.AddAction(new UploadConfig.UploadActionData(ifSuccessful, Status.IfSuccessful, Trigger.OnTaskFinished));
+
+            yield return Execute(task);
+
+            Assert.IsFalse(task.IsSuccessful);
+            AssertFailedAt(task, StepType.Upload, "UnitTestFailingAction");
+            Assert.AreEqual(0, ifSuccessful.ExecuteCount, "IfSuccessful actions must not run after a failed config action.");
+        }
+
+        [UnityTest]
         public IEnumerator ConfigPostActionsRunWithUploadResult()
         {
             string source = Fixture("ConfigActions", "root.txt", "root");

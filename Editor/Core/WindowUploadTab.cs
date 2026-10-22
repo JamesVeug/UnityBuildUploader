@@ -562,6 +562,8 @@ namespace Wireframe
                                 m_isDirty = true;
                             }, GUILayout.Width(200));
 
+                        m_isDirty |= UploadConfig.DrawStopTaskIfFailedToggle(actionData);
+
                         bool disabled = actionData.WhenToExecute == UploadConfig.UploadActionData.UploadCompleteStatus.Never;
                         using (new EditorGUI.DisabledScope(disabled))
                         {
@@ -572,6 +574,7 @@ namespace Wireframe
                                 if (actionData.UploadAction != null)
                                 {
                                     actionData.UploadAction.Context.SetParent(m_context);
+                                    actionData.StopTaskIfFailed = actionData.UploadAction.DefaultStopTaskIfFailed;
                                 }
                             }
 
@@ -579,7 +582,7 @@ namespace Wireframe
                             {
                                 if (actionData.ActionType != null && actionData.UploadAction != null)
                                 {
-                                    float maxWidth = UploaderWindow.position.width - (130 + 200 + 200 + 100); // Gross
+                                    float maxWidth = UploaderWindow.position.width - (130 + 200 + 200 + 100 + UploadConfig.StopTaskIfFailedToggleWidth); // Gross
                                     if (actionData.Collapsed)
                                     {
                                         using (new GUILayout.HorizontalScope())

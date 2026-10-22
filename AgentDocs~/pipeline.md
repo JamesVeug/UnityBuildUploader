@@ -46,7 +46,7 @@ Load profiles with `UploadProfile.FromGUID(guid)`, `UploadProfile.FromProfileNam
 | Step | Runs after an earlier failure? | Notes |
 | --- | --- | --- |
 | Validation | yes | Creates each config's cache folder, then `config.GetAllErrors()` / warnings |
-| PreUploadActions | yes | Task actions with trigger `OnTaskStarted` |
+| PreUploadActions | yes | Task actions with trigger `OnTaskStarted`. Fails, so the "no" steps are skipped, when an action with `StopTaskIfFailed` fails |
 | PrepareSources | no | |
 | GetSources | no | Builds happen here (`ABuildSource`) |
 | CacheSources | no | Copies sources into the cache; `IgnoreFileDuringCacheSource` filters |
@@ -59,7 +59,7 @@ Load profiles with `UploadProfile.FromGUID(guid)`, `UploadProfile.FromProfileNam
 Steps are global across configs: a failure in any config before Upload skips the remaining
 "no" steps for every config. A failed destination does **not** stop sibling destinations.
 Task actions with `AfterEachStepCompletes` fire after every step that runs, except Validation and the
-two action steps.
+two action steps. If one with `StopTaskIfFailed` fails, the remaining "no" steps are skipped.
 
 ## Result, failure and cancellation
 
@@ -71,6 +71,13 @@ two action steps.
 - Action filters: `UploadCompleteStatus` (`Always`, `Never`, `IfSuccessful`, `IfFailed`) combined with
   `UploadTrigger` (`OnTaskStarted`, `AfterEachStepCompletes`, `OnTaskFinished`). `CleanUp` runs for every
   action that is not `Never` and has a trigger, whatever the result.
+- An action fails when `Prepare` or `Execute` returns false or throws, or its `StepResult` is failed.
+  By default that only logs (and fails the report if the action called `SetFailed`); later steps still run.
+  With `UploadActionData.StopTaskIfFailed` (JSON `stopTaskIfFailed`, missing means false) `UploadTask.ExecuteActions`
+  fails the result and returns false: `OnTaskStarted` stops the build and upload, `AfterEachStepCompletes`
+  skips the remaining "no" steps, and a config post-action fails the Upload step. Cleanup and `OnTaskFinished`
+  actions still run. Picking an action in the GUI (or `new UploadActionData(action, ...)`) copies
+  `AUploadAction.DefaultStopTaskIfFailed`, which actions that later steps depend on override to true.
 - Past runs appear in **Window → Build Uploader → Open Upload Tasks Window**. There is no completion dialog
   outside the GUI. To dry-run sources and modifiers without touching a service, use `NoUploadDestination`
   ("Nowhere") and turn off cache deletion.

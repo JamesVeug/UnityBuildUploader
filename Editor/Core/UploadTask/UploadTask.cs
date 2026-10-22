@@ -327,7 +327,12 @@ namespace Wireframe
 
                 if (step.FireActions)
                 {
-                    await ExecuteTaskActions(stepSuccessful, UploadConfig.UploadActionData.UploadTrigger.AfterEachStepCompletes);
+                    bool actionsSuccessful = await ExecuteTaskActions(stepSuccessful, UploadConfig.UploadActionData.UploadTrigger.AfterEachStepCompletes);
+                    if (!actionsSuccessful)
+                    {
+                        // An action set to stop the task failed, so skip the remaining steps that need success
+                        IsSuccessful = false;
+                    }
                 }
             }
         }
@@ -341,12 +346,21 @@ namespace Wireframe
             m_report.SetCancelled();
         }
 
+        /// <summary>
+        /// Runs the task's actions that match the trigger.
+        /// </summary>
+        /// <returns>False if an action set to stop the task failed</returns>
         public async Task<bool> ExecuteTaskActions(bool valid,
             UploadConfig.UploadActionData.UploadTrigger trigger)
         {
             return await ExecuteActions(valid, trigger, m_actions, "Post Upload Action");
         }
 
+        /// <summary>
+        /// Runs the actions that match the trigger and the task's success so far.
+        /// An action fails when Prepare or Execute returns false or throws, or it marks its result failed.
+        /// </summary>
+        /// <returns>False if an action with StopTaskIfFailed failed</returns>
         public async Task<bool> ExecuteActions(bool valid, 
             UploadConfig.UploadActionData.UploadTrigger? trigger,
             List<UploadConfig.UploadActionData> allActions, string title)
@@ -366,6 +380,7 @@ namespace Wireframe
             
             int postActionID = ProgressUtils.Start(title, $"Executing {title}...");
             int actionsRun = 0;
+            bool stopTask = false;
             
             for (int i = 0; i < allActions.Count; i++)
             {
@@ -395,17 +410,18 @@ namespace Wireframe
                 result.AddLog($"Executing {title}: {i+1}");
 
                 actionsRun++;
-                bool prepared = await actionData.UploadAction.Prepare(result);
-                if (!prepared)
-                {
-                    result.AddError($"Failed to prepare {title}: {actionData.UploadAction.GetType().Name}");
-                    result.SetPercentComplete(1f);
-                    continue;
-                }
-
+                string actionName = actionData.UploadAction.GetType().Name;
+                bool succeeded = false;
                 try
                 {
-                    await actionData.UploadAction.Execute(result);
+                    if (await actionData.UploadAction.Prepare(result))
+                    {
+                        succeeded = await actionData.UploadAction.Execute(result);
+                    }
+                    else
+                    {
+                        result.AddError($"Failed to prepare {title}: {actionName}");
+                    }
                 }
                 catch (Exception e)
                 {
@@ -414,6 +430,15 @@ namespace Wireframe
                 finally
                 {
                     result.SetPercentComplete(1f);
+                }
+
+                if ((!succeeded || !result.Successful) && actionData.StopTaskIfFailed)
+                {
+                    if (result.Successful)
+                    {
+                        result.SetFailed($"{title} {i+1} ({actionName}) failed and is set to stop the task if it fails.");
+                    }
+                    stopTask = true;
                 }
             }
 
@@ -424,7 +449,7 @@ namespace Wireframe
             }
             
             ProgressUtils.Remove(postActionID);
-            return true;
+            return !stopTask;
         }
 
         private void SetProgress(int step, float percent, string message)

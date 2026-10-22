@@ -9,7 +9,7 @@ row to [`UntestedFixes.md`](UntestedFixes.md) instead, saying what would make it
 
 | Assembly | Fixture | Needs | Covers |
 | --- | --- | --- | --- |
-| `BuildUploader.UnitTest.Core` | `UploadTaskTests` | Nothing | UploadTask end to end on every host: folder/file sources, local path destination, cache and cleanup, validation failure, exclude/compress/decompress, action triggers and status, config post-actions, failing destinations, cancellation, disabled configs, duplicate files, `{key}` formatting |
+| `BuildUploader.UnitTest.Core` | `UploadTaskTests` | Nothing | UploadTask end to end on every host: folder/file sources, local path destination, cache and cleanup, validation failure, exclude/compress/decompress, action triggers and status, config post-actions, failing destinations, cancellation, disabled configs, duplicate files, `{key}` formatting, failed actions with and without Stop task if this fails |
 | | `SavedTypeResolutionTests` | Nothing | Actions and destinations from other assemblies reload from a saved profile with their data; the JSON still names types by full name |
 | | `ProcessUtilsTests` | Nothing | ANSI colour codes stripped from captured output; `EnsureExecutable` restores the exec bit |
 | | `SdkInitializationTests` | Nothing | Steam, itch.io, Nintendo and PlayStation `Initialize` on fake SDK folders make their tools executable; Steam login status is cleared and kept per user |
@@ -56,9 +56,11 @@ row to [`UntestedFixes.md`](UntestedFixes.md) instead, saying what would make it
   for failure paths. Pass a timeout so a hung task fails instead of stalling CI.
 - Keep `Core` free of credentials, network and player builds. Fake external tools instead: `FakeSteamSdk` builds
   an SDK folder whose `steamcmd.sh` prints canned output and records its HOME. Pipeline doubles
-  (`UnitTestRecordingAction`, `UnitTestFailingDestination`, `UnitTestGateDestination`) live in
+  (`UnitTestRecordingAction`, `UnitTestFailingAction`, `UnitTestFailingDestination`, `UnitTestGateDestination`) live in
   `Core/UnitTestDoubles.cs`; like every pipeline type they are found by reflection and appear in the host's pickers.
-- The host CI runner requires **every** `[Test]`/`[UnityTest]` declared in any `Core/*.cs` file to pass. A file
+- The host CI runner requires **every** `[Test]`/`[UnityTest]` declared in any `Core/*.cs` file to pass, matched by
+  method name, so do not parameterize them (`[Values]`, `[TestCase]`) and keep the fixture the first `public class` in
+  its file. A file
   that only applies to some hosts starts with `// BuildUploader-Hosts: OSXUniversal Linux64` (build target
   names) and wraps its code in a matching `#if`. Otherwise give each host a real assertion rather than skipping.
   Other suites name their required cases in `.ci/run_tests.py`.

@@ -38,6 +38,57 @@ namespace Wireframe.UnitTest
         }
     }
 
+    /// <summary>Action that fails in a chosen way, without calling SetFailed itself.</summary>
+    public class UnitTestFailingAction : AUploadAction
+    {
+        public enum FailureMode
+        {
+            ExecuteReturnsFalse,
+            ExecuteThrows,
+            PrepareReturnsFalse,
+        }
+
+        public const string ExceptionMessage = "UnitTestFailingAction threw";
+
+        private readonly FailureMode m_mode;
+
+        public int ExecuteCount { get; private set; }
+        public int CleanUpCount { get; private set; }
+
+        public UnitTestFailingAction() : this(FailureMode.ExecuteReturnsFalse) { }
+
+        public UnitTestFailingAction(FailureMode mode)
+        {
+            m_mode = mode;
+        }
+
+        public override Task<bool> Prepare(UploadTaskReport.StepResult stepResult)
+        {
+            return Task.FromResult(m_mode != FailureMode.PrepareReturnsFalse);
+        }
+
+        public override Task<bool> Execute(UploadTaskReport.StepResult stepResult)
+        {
+            ExecuteCount++;
+            if (m_mode == FailureMode.ExecuteThrows)
+            {
+                throw new System.InvalidOperationException(ExceptionMessage);
+            }
+            return Task.FromResult(false);
+        }
+
+        public override Task CleanUp(UploadTaskReport.StepResult stepResult)
+        {
+            CleanUpCount++;
+            return Task.CompletedTask;
+        }
+
+        public override void OnGUICollapsed(ref bool isDirty, float maxWidth) { }
+        public override void OnGUIExpanded(ref bool isDirty) { }
+        public override Dictionary<string, object> Serialize() => new Dictionary<string, object>();
+        public override void Deserialize(Dictionary<string, object> data) { }
+    }
+
     /// <summary>Destination whose upload always fails, optionally without recording a fail reason.</summary>
     public class UnitTestFailingDestination : AUploadDestination
     {

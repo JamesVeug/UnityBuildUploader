@@ -23,10 +23,11 @@ namespace Wireframe
         {
             int preActionID = ProgressUtils.Start("Pre Upload Actions", "Executing Pre Upload Actions...");
 
-            await uploadTask.ExecuteTaskActions(uploadTask.IsSuccessful, UploadConfig.UploadActionData.UploadTrigger.OnTaskStarted);
+            // False when an action set to stop the task failed, so the build and upload steps are skipped
+            bool successful = await uploadTask.ExecuteTaskActions(uploadTask.IsSuccessful, UploadConfig.UploadActionData.UploadTrigger.OnTaskStarted);
             
             ProgressUtils.Remove(preActionID);
-            return true;
+            return successful;
         }
 
         public override Task<bool> PostRunResult(UploadTask uploadTask, UploadTaskReport report, bool allStepsSuccessful)

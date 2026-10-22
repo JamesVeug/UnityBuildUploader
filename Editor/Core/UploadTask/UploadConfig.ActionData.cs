@@ -33,6 +33,9 @@ namespace Wireframe
 
             [Wiki("Triggers", "Choose what triggers the action to execute.")]
             public List<UploadTrigger> Triggers = new List<UploadTrigger>();
+
+            [Wiki("Stop Task If Failed", "If this action fails, the task fails and skips its remaining build and upload steps. Cleanup and actions that run when the task finishes still run. Actions that later steps depend on turn it on when picked.")]
+            public bool StopTaskIfFailed;
             
             public AUploadAction UploadAction;
             public UIHelpers.BuildActionPopup.ActionData ActionType;
@@ -47,6 +50,7 @@ namespace Wireframe
                 WhenToExecute = whenToExecute;
                 UploadAction = action;
                 ActionType = UIHelpers.ActionsPopup.Values.FirstOrDefault(a => a.Type == action.GetType());
+                StopTaskIfFailed = action.DefaultStopTaskIfFailed;
                 if (triggers != null)
                     Triggers.AddRange(triggers);
             }
@@ -56,6 +60,7 @@ namespace Wireframe
                 WhenToExecute = whenToExecute;
                 UploadAction = action;
                 ActionType = UIHelpers.ActionsPopup.Values.FirstOrDefault(a => a.Type == action.GetType());
+                StopTaskIfFailed = action.DefaultStopTaskIfFailed;
                 if (triggers != null)
                     Triggers.AddRange(triggers);
             }
@@ -74,6 +79,7 @@ namespace Wireframe
                 {
                     ["whenToExecute"] = (int)WhenToExecute,
                     ["triggers"] = Triggers.Select(t => (int)t).ToList(),
+                    ["stopTaskIfFailed"] = StopTaskIfFailed,
                     ["actionType"] = ActionType?.Type?.FullName,
                     ["action"] = UploadAction?.Serialize(),
                     ["version"] = Version,
@@ -111,6 +117,9 @@ namespace Wireframe
                 {
                     Triggers.AddRange(triggers.Select(t => (UploadTrigger)(long)t));
                 }
+
+                // Added after version 2. A missing key keeps the old behaviour, where a failed action never stopped the task.
+                StopTaskIfFailed = data.TryGetValue("stopTaskIfFailed", out var stopTaskIfFailed) && stopTaskIfFailed is bool stop && stop;
 
                 ActionType = new UIHelpers.BuildActionPopup.ActionData();
                 if (data.TryGetValue("actionType", out var actionTypeData) && actionTypeData != null)

@@ -10,6 +10,8 @@ namespace Wireframe
     /// </summary>
     public partial class UploadConfig
     {
+        internal const float StopTaskIfFailedToggleWidth = 150;
+        
         internal bool Collapsed { get; set; } = true;
         
         private GUIStyle m_titleStyle;
@@ -699,6 +701,25 @@ namespace Wireframe
             }
         }
 
+        /// <summary>
+        /// Draws the "Stop task if this fails" toggle for an action entry.
+        /// </summary>
+        /// <returns>True if the value changed</returns>
+        internal static bool DrawStopTaskIfFailedToggle(UploadActionData actionData)
+        {
+            GUIContent content = new GUIContent("Stop task if this fails",
+                "If this action fails, the task fails and skips its remaining build and upload steps. " +
+                "Cleanup and actions that run when the task finishes still run.");
+            bool stop = GUILayout.Toggle(actionData.StopTaskIfFailed, content, GUILayout.Width(StopTaskIfFailedToggleWidth));
+            if (stop == actionData.StopTaskIfFailed)
+            {
+                return false;
+            }
+
+            actionData.StopTaskIfFailed = stop;
+            return true;
+        }
+
         private void DrawExpandedActions(ref bool isDirty)
         {
             GUILayout.Label("Actions", m_titleStyle);
@@ -717,6 +738,8 @@ namespace Wireframe
                         isDirty = true;
                     }
 
+                    isDirty |= DrawStopTaskIfFailedToggle(actionData);
+
                     bool disabled = actionData.WhenToExecute == UploadActionData.UploadCompleteStatus.Never;
                     using (new EditorGUI.DisabledScope(disabled))
                     {
@@ -725,7 +748,11 @@ namespace Wireframe
                         {
                             isDirty = true;
                             Utils.CreateInstance(actionData.ActionType?.Type, out actionData.UploadAction);
-                            actionData.UploadAction.Context.SetParent(m_context);
+                            if (actionData.UploadAction != null)
+                            {
+                                actionData.UploadAction.Context.SetParent(m_context);
+                                actionData.StopTaskIfFailed = actionData.UploadAction.DefaultStopTaskIfFailed;
+                            }
                         }
                     }
                     
