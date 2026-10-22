@@ -70,23 +70,17 @@ namespace Wireframe {
             
             GUILayout.Label(Utils.WindowLargeIcon, headerLabelStyle);
             GUILayout.Label("Build Uploader", headerLabelStyle);
-            if (!string.IsNullOrEmpty(Utils.PackageVersion))
+            using (new EditorGUILayout.HorizontalScope())
             {
-                GUILayout.Label($"v{Utils.PackageVersion}", versionLabelStyle);
+                if (!string.IsNullOrEmpty(Utils.PackageVersion))
+                {
+                    GUILayout.Label($"v{Utils.PackageVersion}", versionLabelStyle);
+                }
+                BuildUploaderWindow.DrawUpdateButton(EditorStyles.toolbarButton);
             }
 
             GUILayout.Label("Welcome to the Build Uploader!");
             GUILayout.Label("This tool is designed to make it easy to make a build and upload it to all kinds of services.");
-
-
-            GUILayout.Label("- Want more information? See the Documentation!");
-            GUILayout.Label("- Want to talk to the Dev or others that use the Build Uploader? Join our Discord!");
-            GUILayout.Label("- Want to see the source code or view in progress changes/fixes? Go to Github!");
-            GUILayout.Label("- Want to ask questions or report a bug or suggest changes? Report Bug/Suggest Feature!");
-            GUILayout.Label("- Want to support the project? Check it out on the Unity Asset Store or press Support Me!");
-            GUILayout.Label("- Uploading from CI or a build machine? See the CLI/CI Docs to run uploads without the UI!");
-            GUILayout.Label("- Want to upload with a single click? Use Window->Build Uploader->Quick Upload->Generate Menu Items.");
-            GUILayout.Label("- Checks GitHub for new versions when Unity opens (weekly or monthly); nothing about your project is sent. Turn off in Preferences.");
 
             EditorGUILayout.Space(20);
 
@@ -96,9 +90,9 @@ namespace Wireframe {
 
             DrawSetupCheckList();
 
-            EditorGUILayout.Space();
+            EditorGUILayout.Space(20);
 
-            GUILayout.Label(newVersionCount > 0 ? "What's New" : "Changelog", sectionLabelStyle);
+            GUILayout.Label("Changelog", sectionLabelStyle);
             using (new EditorGUILayout.VerticalScope("box"))
             {
                 DrawChanges();
