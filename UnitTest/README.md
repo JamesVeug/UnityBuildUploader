@@ -10,6 +10,7 @@ row to [`UntestedFixes.md`](UntestedFixes.md) instead, saying what would make it
 | Assembly | Fixture | Needs | Covers |
 | --- | --- | --- | --- |
 | `BuildUploader.UnitTest.Core` | `UploadTaskTests` | Nothing | UploadTask end to end on every host: folder/file sources, local path destination, cache and cleanup, validation failure, exclude/compress/decompress, action triggers and status, config post-actions, failing destinations, cancellation, disabled configs, duplicate files, `{key}` formatting |
+| | `SavedTypeResolutionTests` | Nothing | Actions and destinations from other assemblies reload from a saved profile with their data; the JSON still names types by full name |
 | | `ProcessUtilsTests` | Nothing | ANSI colour codes stripped from captured output; `EnsureExecutable` restores the exec bit |
 | | `SdkInitializationTests` | Nothing | Steam, itch.io, Nintendo and PlayStation `Initialize` on fake SDK folders make their tools executable; Steam login status is cleared and kept per user |
 | | `SteamLoginProbeTests` (macOS, Linux) | Nothing | `SteamSDK.ProbeLoginAsync` against a fake `steamcmd.sh`: coloured output, Steam Guard, rate limit, Linux SteamCMD HOME, where the saved login is read |
@@ -19,7 +20,7 @@ row to [`UntestedFixes.md`](UntestedFixes.md) instead, saying what would make it
 | `BuildUploader.UnitTest.Discord` | `DiscordMessageTests` | Nothing | `DiscordMessageChannelAction` dry run: serialized message and embed, no HTTP |
 | `BuildUploader.UnitTest.Itchio` | `ItchioWebGLTests` | Native Butler | `ItchioDestination` `push --dry-run` of an HTML fixture on channel `html5` |
 | `BuildUploader.UnitTest.Steam` | `SteamPreviewTests` | SteamCMD + authorized account | `SteamUploadDestination` preview upload, branch `none`; nothing goes live |
-| `BuildUploader.UnitTest.Builds` | `DesktopBuildTests` | Desktop build module | One player for the active Win64/macOS/Linux64 target through `BuildProfileSource` (Unity 6) or `BuildConfigSource` (2019/2022) into `LocalPathDestination` |
+| `BuildUploader.UnitTest.Builds` | `DesktopBuildTests` | Desktop build module | One player for the active Win64/macOS/Linux64 target through `BuildProfileSource` (Unity 6) or `BuildConfigSource` (2019/2022) into `LocalPathDestination`. |
 | | `OptionalPackagesTests` | Nothing (starts a second editor, a few minutes) | A new project with only the package and the engine modules (plus SharpZipLib before 2021.1) compiles, and leaves out the assemblies that need Unity Pipeline or Test Framework |
 | `BuildUploader.UnitTest.Common` | `TestSupport` | — | Helpers: `Run`, `Execute`, `Await`, `WaitUntil`, `OutputDirectory`, `FixtureDirectory`, `RequiredEnvironment` |
 

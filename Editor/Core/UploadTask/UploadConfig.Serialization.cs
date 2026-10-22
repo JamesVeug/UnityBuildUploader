@@ -154,7 +154,7 @@ namespace Wireframe
                 if (data.TryGetValue("sourceFullType", out object sourceFullType) && sourceFullType != null)
                 {
                     string sourceFullPath = (string)sourceFullType;
-                    Type sourceType = Type.GetType(sourceFullPath);
+                    Type sourceType = InternalUtils.FindType(sourceFullPath);
                     if (sourceType != null)
                     {
                         SourceData sourceData = new SourceData();
@@ -212,7 +212,7 @@ namespace Wireframe
                                 }
                             }
                             
-                            Type type = Type.GetType(typeString);
+                            Type type = InternalUtils.FindType(typeString);
                             if (type != null)
                             {
                                 AUploadModifer uploadModifer = Activator.CreateInstance(type) as AUploadModifer;
@@ -246,7 +246,7 @@ namespace Wireframe
                 if (data.TryGetValue("destinationFullType", out object destinationFullType) && destinationFullType != null)
                 {
                     string destinationFullPath = (string)destinationFullType;
-                    Type type = Type.GetType(destinationFullPath);
+                    Type type = InternalUtils.FindType(destinationFullPath);
                     if (type != null)
                     {
                         DestinationData destinationData = new DestinationData();

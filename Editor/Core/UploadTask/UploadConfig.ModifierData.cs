@@ -44,7 +44,7 @@ namespace Wireframe
                 Enabled = data.ContainsKey("enabled") ? (bool)data["enabled"] : true;
                 if (data.TryGetValue("modifierType", out object modifierType) && modifierType != null)
                 {
-                    Type type = Type.GetType(modifierType as string);
+                    Type type = InternalUtils.FindType(modifierType as string);
                     if (UIHelpers.ModifiersPopup.TryGetValueFromType(type, out var newModifierType))
                     {
                         if (Utils.CreateInstance(newModifierType.Type, out Modifier))

@@ -115,7 +115,7 @@ namespace Wireframe
                 ActionType = new UIHelpers.BuildActionPopup.ActionData();
                 if (data.TryGetValue("actionType", out var actionTypeData) && actionTypeData != null)
                 {
-                    var type = Type.GetType(actionTypeData as string);
+                    var type = InternalUtils.FindType(actionTypeData as string);
                     if (UIHelpers.ActionsPopup.TryGetValueFromType(type, out ActionType))
                     {
                         if (Utils.CreateInstance(ActionType.Type, out UploadAction))
@@ -125,7 +125,7 @@ namespace Wireframe
                     }
                     else
                     {
-                        Debug.LogError($"Action type {ActionType} not found");
+                        Debug.LogError($"Action type `{actionTypeData}` not found");
                     }
                 }
             }

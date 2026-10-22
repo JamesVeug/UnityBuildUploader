@@ -82,6 +82,36 @@ namespace Wireframe
             return allBuildActions;
         }
         
+        /// <summary>
+        /// Finds a type saved by its Type.FullName. Type.GetType only searches this assembly and mscorlib, so
+        /// sources, modifiers, destinations and actions from other assemblies (integrations, tests, the user's
+        /// project) are looked up in the same loaded assemblies FetchAllTypes registers them from.
+        /// </summary>
+        public static Type FindType(string fullName)
+        {
+            if (string.IsNullOrEmpty(fullName))
+            {
+                return null;
+            }
+
+            Type type = Type.GetType(fullName);
+            if (type != null)
+            {
+                return type;
+            }
+
+            foreach (Assembly assembly in AssemblyUtils.GetAssemblies())
+            {
+                type = assembly.GetType(fullName, false);
+                if (type != null)
+                {
+                    return type;
+                }
+            }
+
+            return null;
+        }
+
         private static void FetchAllTypes()
         {
             allServices = new List<AService>();

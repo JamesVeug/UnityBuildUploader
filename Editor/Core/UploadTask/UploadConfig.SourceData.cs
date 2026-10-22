@@ -64,7 +64,7 @@ namespace Wireframe
                 SubFolder = data.ContainsKey("subFolderPath") ? data["subFolderPath"] as string : "";
                 if (data.TryGetValue("sourceType", out object sourceType) && sourceType != null)
                 {
-                    Type type = Type.GetType(sourceType as string);
+                    Type type = InternalUtils.FindType(sourceType as string);
                     if (UIHelpers.SourcesPopup.TryGetValueFromType(type, out var newSourceType))
                     {
                         if (Utils.CreateInstance(newSourceType.Type, out Source))

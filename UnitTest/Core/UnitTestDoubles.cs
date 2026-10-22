@@ -12,6 +12,9 @@ namespace Wireframe.UnitTest
         public int ExecuteCount { get; private set; }
         public int CleanUpCount { get; private set; }
 
+        /// <summary>Saved with the action, so tests can check its data reloads.</summary>
+        public string Label { get; set; } = "";
+
         public override Task<bool> Execute(UploadTaskReport.StepResult stepResult)
         {
             ExecuteCount++;
@@ -27,8 +30,12 @@ namespace Wireframe.UnitTest
 
         public override void OnGUICollapsed(ref bool isDirty, float maxWidth) { }
         public override void OnGUIExpanded(ref bool isDirty) { }
-        public override Dictionary<string, object> Serialize() => new Dictionary<string, object>();
-        public override void Deserialize(Dictionary<string, object> data) { }
+        public override Dictionary<string, object> Serialize() => new Dictionary<string, object> { ["label"] = Label };
+
+        public override void Deserialize(Dictionary<string, object> data)
+        {
+            Label = data != null && data.TryGetValue("label", out object label) ? label as string ?? "" : "";
+        }
     }
 
     /// <summary>Destination whose upload always fails, optionally without recording a fail reason.</summary>

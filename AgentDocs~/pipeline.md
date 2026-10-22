@@ -124,6 +124,10 @@ of `AUploadSource`, `AUploadModifer`, `AUploadDestination`, `AUploadAction` and 
 only supplies the display name. Never register types manually. Test doubles in `UnitTest/` are
 discovered too, so they appear in pickers of projects that list the package in `testables`.
 
+Saved profiles name each type by `Type.FullName` (no assembly). Load it with `InternalUtils.FindType`, never
+`Type.GetType`, which only searches the core assembly and mscorlib: `FindType` also searches every loaded assembly
+(the same `AssemblyUtils.GetAssemblies()` registration scans), so integrations, test doubles and users' own types reload.
+
 ## Partial class conventions
 
 | Suffix | Purpose |

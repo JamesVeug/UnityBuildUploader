@@ -44,7 +44,7 @@ namespace Wireframe
                 Enabled = data.ContainsKey("enabled") ? (bool)data["enabled"] : true;
                 if (data.TryGetValue("destinationType", out object destinationType) && destinationType != null)
                 {
-                    Type type = Type.GetType(destinationType as string);
+                    Type type = InternalUtils.FindType(destinationType as string);
                     if (UIHelpers.DestinationsPopup.TryGetValueFromType(type, out var newDestinationType))
                     {
                         if (Utils.CreateInstance(newDestinationType.Type, out Destination))
