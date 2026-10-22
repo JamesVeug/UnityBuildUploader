@@ -274,23 +274,19 @@ namespace Wireframe
                             
                             menu.AddItem(new GUIContent("Duplicate"), false, () =>
                             {
-                                if (EditorUtility.DisplayDialog("Duplicate Upload Config",
-                                        "Are you sure you want to duplicate this Upload Config?", "Duplicate", "Cancel"))
-                                {
-                                    // Clone it using JSON because just using serialize data uses concrete types for collections
-                                    // TODO: Fix the concrete types to avoid this JSON serialization
-                                    Dictionary<string, object> serialized = uploadConfig.Serialize();
-                                    string json = JSON.SerializeObject(serialized);
-                                    serialized = JSON.DeserializeObject<Dictionary<string, object>>(json);
-                                    
-                                    UploadConfig copy = new UploadConfig();
-                                    copy.Deserialize(serialized);
-                                    copy.NewGUID();
-                                    copy.Context.SetParent(m_context);
-                                    m_currentUploadProfile.UploadConfigs.Add(copy);
-                                    
-                                    m_isDirty = true;
-                                }
+                                // Clone it using JSON because just using serialize data uses concrete types for collections
+                                // TODO: Fix the concrete types to avoid this JSON serialization
+                                Dictionary<string, object> serialized = uploadConfig.Serialize();
+                                string json = JSON.SerializeObject(serialized);
+                                serialized = JSON.DeserializeObject<Dictionary<string, object>>(json);
+                                
+                                UploadConfig copy = new UploadConfig();
+                                copy.Deserialize(serialized);
+                                copy.NewGUID();
+                                copy.Context.SetParent(m_context);
+                                m_currentUploadProfile.UploadConfigs.Add(copy);
+                                
+                                m_isDirty = true;
                             });
                             
                             menu.AddSeparator("");
