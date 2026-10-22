@@ -113,6 +113,14 @@ Every task start bumps `TotalUploadTasksStarted` and every build bumps `LastBuil
 - **`AUploadAction`** — `Prepare()`, `Execute()`, `CleanUp()`, `TryGetErrors`, `TryGetWarnings`,
   `Serialize`/`Deserialize`. Tag with `[UploadAction(...)]`.
 
+Built-in actions with no service: `InvokeStaticMethodAction` (core) calls a project's static method by path
+(`Namespace.Type.Method`, `+` for nested types, `Namespace.Type, Assembly.Method` to pick an assembly; private
+methods allowed; `()` or `(UploadTaskReport.StepResult)`; returns `void`, `bool` or `int`, a `Task` or UniTask of
+one, or an `IEnumerator` run as a coroutine one step per editor update; false or an int other than 1 fails).
+UniTask is optional: it is recognised by name and awaited through its own `UniTaskExtensions.AsTask`, so core
+never references it. It resolves in `TryGetErrors` and caches the `MethodInfo` per formatted path until a domain
+reload. It defaults to `StopTaskIfFailed`.
+
 Copy-paste reference implementations live in the wiki: `How-to-Create-a-new-Source.md` (`LastBuildSource`),
 `How-to-Create-a-new-Modifier.md` (`CompressModifier`), `How-to-Create-a-new-Destination.md` (`LocalPathDestination`).
 

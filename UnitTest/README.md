@@ -9,8 +9,9 @@ row to [`UntestedFixes.md`](UntestedFixes.md) instead, saying what would make it
 
 | Assembly | Fixture | Needs | Covers |
 | --- | --- | --- | --- |
-| `BuildUploader.UnitTest.Core` | `UploadTaskTests` | Nothing | UploadTask end to end on every host: folder/file sources, local path destination, cache and cleanup, validation failure, exclude/compress/decompress, action triggers and status, config post-actions, failing destinations, cancellation, disabled configs, duplicate files, `{key}` formatting, failed actions with and without Stop task if this fails |
+| `BuildUploader.UnitTest.Core` | `UploadTaskTests` | Nothing | UploadTask end to end on every host: folder/file sources, local path destination, cache and cleanup, validation failure, exclude/compress/decompress, action triggers and status, config post-actions, failing destinations, cancellation, disabled configs, duplicate files, `{key}` formatting, failed actions with and without Stop task if this fails, Invoke Static Method before a build |
 | | `SavedTypeResolutionTests` | Nothing | Actions and destinations from other assemblies reload from a saved profile with their data; the JSON still names types by full name |
+| | `InvokeStaticMethodActionTests` | Nothing | Invoke Static Method: public, private, nested and assembly-qualified methods; `bool`, `int`, `Task`, `Task<bool>`, `Task<int>` and `StepResult` shapes; UniTask (through the stand-in in `UnitTestUniTask.cs`) and `IEnumerator` coroutines; return types rejected by validation; exceptions; every path error, including a type in two assemblies |
 | | `ProcessUtilsTests` | Nothing | ANSI colour codes stripped from captured output; `EnsureExecutable` restores the exec bit |
 | | `SdkInitializationTests` | Nothing | Steam, itch.io, Nintendo and PlayStation `Initialize` on fake SDK folders make their tools executable; Steam login status is cleared and kept per user |
 | | `SteamLoginProbeTests` (macOS, Linux) | Nothing | `SteamSDK.ProbeLoginAsync` against a fake `steamcmd.sh`: coloured output, Steam Guard, rate limit, Linux SteamCMD HOME, where the saved login is read |
@@ -58,6 +59,7 @@ row to [`UntestedFixes.md`](UntestedFixes.md) instead, saying what would make it
   an SDK folder whose `steamcmd.sh` prints canned output and records its HOME. Pipeline doubles
   (`UnitTestRecordingAction`, `UnitTestFailingAction`, `UnitTestFailingDestination`, `UnitTestGateDestination`) live in
   `Core/UnitTestDoubles.cs`; like every pipeline type they are found by reflection and appear in the host's pickers.
+  Methods for Invoke Static Method are in `Core/UnitTestStaticMethods.cs`.
 - The host CI runner requires **every** `[Test]`/`[UnityTest]` declared in any `Core/*.cs` file to pass, matched by
   method name, so do not parameterize them (`[Values]`, `[TestCase]`) and keep the fixture the first `public class` in
   its file. A file

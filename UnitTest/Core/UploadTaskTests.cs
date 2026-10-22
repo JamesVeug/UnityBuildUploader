@@ -286,6 +286,42 @@ namespace Wireframe.UnitTest
         }
 
         [UnityTest]
+        public IEnumerator InvokedMethodReturningFalseBlocksTheBuild()
+        {
+            UnitTestStaticMethods.Calls = 0;
+            string source = Fixture("InvokeFalse", "root.txt", "root");
+            string output = Output("InvokeFalse");
+            var task = new UploadTask("Core invoke false", Config(new FolderSource(source), new LocalPathDestination(output)));
+            // Added the way the window adds it, so Stop task if this fails comes from the action's default
+            task.AddAction(new InvokeStaticMethodAction(UnitTestStaticMethods.Path + "ReturnsFalse"), Status.Always,
+                new System.Collections.Generic.List<Trigger> { Trigger.OnTaskStarted });
+
+            yield return Execute(task);
+
+            Assert.AreEqual(1, UnitTestStaticMethods.Calls);
+            Assert.IsFalse(task.IsSuccessful);
+            AssertFailedAt(task, StepType.PreUploadActions, "ReturnsFalse returned false");
+            Assert.IsFalse(task.Report.StepResults.ContainsKey(StepType.GetSources), "Sources must not be fetched or built.\n" + task.Report.GetReport());
+            Assert.IsFalse(Directory.Exists(output), "Nothing may be uploaded.");
+        }
+
+        [UnityTest]
+        public IEnumerator InvokedMethodRunsBeforeTheUpload()
+        {
+            UnitTestStaticMethods.Calls = 0;
+            string source = Fixture("InvokeTrue", "root.txt", "root");
+            string output = Output("InvokeTrue");
+            var task = new UploadTask("Core invoke true", Config(new FolderSource(source), new LocalPathDestination(output)));
+            task.AddAction(new InvokeStaticMethodAction(UnitTestStaticMethods.Path + "ReturnsTrue"), Status.Always,
+                new System.Collections.Generic.List<Trigger> { Trigger.OnTaskStarted });
+
+            yield return Run(task);
+
+            Assert.AreEqual(1, UnitTestStaticMethods.Calls);
+            Assert.AreEqual("root", File.ReadAllText(Path.Combine(output, "root.txt")));
+        }
+
+        [UnityTest]
         public IEnumerator FailedEachStepActionSetToStopTaskSkipsRemainingSteps()
         {
             string source = Fixture("StopEachStep", "root.txt", "root");
