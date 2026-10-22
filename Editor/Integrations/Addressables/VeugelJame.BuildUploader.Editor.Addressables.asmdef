@@ -1,0 +1,25 @@
+{
+    "name": "VeugelJame.BuildUploader.Editor.Addressables",
+    "references": [
+        "VeugelJame.BuildUploader.Editor",
+        "VeugelJame.BuildUploader",
+        "Unity.Addressables",
+        "Unity.Addressables.Editor",
+        "Unity.ResourceManager"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "BUILD_UPLOADER_ADDRESSABLES",
+        "UNITY_2021_2_OR_NEWER"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.addressables",
+            "expression": "1.19.4",
+            "define": "BUILD_UPLOADER_ADDRESSABLES"
+        }
+    ]
+}

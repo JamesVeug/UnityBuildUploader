@@ -12,6 +12,7 @@ row to [`UntestedFixes.md`](UntestedFixes.md) instead, saying what would make it
 | `BuildUploader.UnitTest.Core` | `UploadTaskTests` | Nothing | UploadTask end to end on every host: folder/file sources, local path destination, cache and cleanup, validation failure, exclude/compress/decompress, action triggers and status, config post-actions, failing destinations, cancellation, disabled configs, duplicate files, `{key}` formatting, failed actions with and without Stop task if this fails, Invoke Static Method before a build |
 | | `SavedTypeResolutionTests` | Nothing | Actions and destinations from other assemblies reload from a saved profile with their data; the JSON still names types by full name |
 | | `InvokeStaticMethodActionTests` | Nothing | Invoke Static Method: public, private, nested and assembly-qualified methods; `bool`, `int`, `Task`, `Task<bool>`, `Task<int>` and `StepResult` shapes; UniTask (through the stand-in in `UnitTestUniTask.cs`) and `IEnumerator` coroutines; return types rejected by validation; exceptions; every path error, including a type in two assemblies |
+| | `BuildSourceAddressablesTests` | Nothing | Build Addressables and Clean Addressables are saved, default to off in older JSON, are kept without Addressables, and are validated (uses a stand-in for the integration) |
 | | `ProcessUtilsTests` | Nothing | ANSI colour codes stripped from captured output; `EnsureExecutable` restores the exec bit |
 | | `SdkInitializationTests` | Nothing | Steam, itch.io, Nintendo and PlayStation `Initialize` on fake SDK folders make their tools executable; Steam login status is cleared and kept per user |
 | | `SteamLoginProbeTests` (macOS, Linux) | Nothing | `SteamSDK.ProbeLoginAsync` against a fake `steamcmd.sh`: coloured output, Steam Guard, rate limit, Linux SteamCMD HOME, where the saved login is read |
@@ -21,8 +22,9 @@ row to [`UntestedFixes.md`](UntestedFixes.md) instead, saying what would make it
 | `BuildUploader.UnitTest.Discord` | `DiscordMessageTests` | Nothing | `DiscordMessageChannelAction` dry run: serialized message and embed, no HTTP |
 | `BuildUploader.UnitTest.Itchio` | `ItchioWebGLTests` | Native Butler | `ItchioDestination` `push --dry-run` of an HTML fixture on channel `html5` |
 | `BuildUploader.UnitTest.Steam` | `SteamPreviewTests` | SteamCMD + authorized account | `SteamUploadDestination` preview upload, branch `none`; nothing goes live |
-| `BuildUploader.UnitTest.Builds` | `DesktopBuildTests` | Desktop build module | One player for the active Win64/macOS/Linux64 target through `BuildProfileSource` (Unity 6) or `BuildConfigSource` (2019/2022) into `LocalPathDestination`. |
+| `BuildUploader.UnitTest.Builds` | `DesktopBuildTests` | Desktop build module | One player for the active Win64/macOS/Linux64 target through `BuildProfileSource` (Unity 6) or `BuildConfigSource` (2019/2022) into `LocalPathDestination`. `OneBuildWithAddressablesContent` (compiled only with Addressables 1.19.4+ on 2021.2+, and needs Addressables settings in the project) builds with Build Addressables and checks the player has `StreamingAssets/aa/catalog.*` |
 | | `OptionalPackagesTests` | Nothing (starts a second editor, a few minutes) | A new project with only the package and the engine modules (plus SharpZipLib before 2021.1) compiles, and leaves out the assemblies that need Unity Pipeline or Test Framework |
+| `BuildUploader.UnitTest.Addressables` | `AddressablesIntegrationTests` | Addressables 1.19.4+ on Unity 2021.2+ (not in CI) | Build With Player is forced for one build and restored, also when the build throws or the settings were saved meanwhile; left alone when already on; a logged content build failure fails the step; the Build Addressables action (builds the project's own content when it has Addressables settings) |
 | `BuildUploader.UnitTest.Common` | `TestSupport` | — | Helpers: `Run`, `Execute`, `Await`, `WaitUntil`, `OutputDirectory`, `FixtureDirectory`, `RequiredEnvironment` |
 
 ## Configuration
@@ -62,7 +64,8 @@ row to [`UntestedFixes.md`](UntestedFixes.md) instead, saying what would make it
   Methods for Invoke Static Method are in `Core/UnitTestStaticMethods.cs`.
 - The host CI runner requires **every** `[Test]`/`[UnityTest]` declared in any `Core/*.cs` file to pass, matched by
   method name, so do not parameterize them (`[Values]`, `[TestCase]`) and keep the fixture the first `public class` in
-  its file. A file
+  its file. A suite also fails if any of its cases is skipped: compile a case that needs an optional package out
+  with a version define instead of `Assert.Ignore`. A file
   that only applies to some hosts starts with `// BuildUploader-Hosts: OSXUniversal Linux64` (build target
   names) and wraps its code in a matching `#if`. Otherwise give each host a real assertion rather than skipping.
   Other suites name their required cases in `.ci/run_tests.py`.

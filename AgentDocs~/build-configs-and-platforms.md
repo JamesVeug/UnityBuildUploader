@@ -48,8 +48,8 @@ by `GUID`.
 - `BuildProfileUIUtils` caches wrappers, refreshes on `[DidReloadScripts]`, and subscribes to
   `BuildProfile.AddOnBuildProfileCreated` by reflection so the dropdown follows new profiles.
 - `BuildProfileSource.ApplyBuildConfig` is a no-op (Unity owns settings); `MakeBuild` calls
-  `BuildProfile.SetActiveBuildProfile(...)` then `BuildPipeline.BuildPlayer(options)`. Override behaviour
-  (platform, product name, scenes) belongs in `BuildConfigSource`, not the profile path.
+  `BuildPipeline.BuildPlayer(BuildPlayerWithProfileOptions)`, so the platform switch happens inside `BuildPlayer`.
+  Override behaviour (platform, product name, scenes) belongs in `BuildConfigSource`, not the profile path.
 
 ## `ABuildSource<T>` — shared base
 
@@ -66,6 +66,29 @@ active `UploadTask` is building the same `IBuildConfig` (via `CompareBuildConfig
 
 Known gap: `PreApplyBuildConfig` never snapshots editor settings, so the post-build restore does not run
 and a BuildConfig's defines stay applied after the build.
+
+### Build Addressables
+
+`ABuildSource` serializes `BuildAddressables` and `CleanAddressables` (missing keys mean false; kept when
+Addressables is not installed). Core cannot reference Addressables, so it talks to the optional
+`Editor/Integrations/Addressables` assembly through `IAddressablesSupport` / `AddressablesSupport.Implementation`,
+which that assembly sets from an `[InitializeOnLoad]` constructor (also in batch mode). The integration needs
+Addressables 1.19.4+ (first with `AddressableAssetSettings.PlayerBuildOption`) and Unity 2021.2+ (Addressables
+only builds content inside a player build from there, through a `BuildPlayerProcessor`).
+
+With the toggle on, `MakeBuildWithAddressables` optionally cleans content, then wraps `MakeBuild` in
+`ForceBuildWithPlayer`: it sets the project's "Build Addressables on Player Build" to `BuildWithPlayer` and restores
+it afterwards. It does **not** build the content itself before `MakeBuild`, because:
+
+- Addressables only adds `Library/com.unity.addressables/aa/<Platform>` to a player if it exists when the build starts.
+- A Build Profile only switches platform inside `BuildPlayer`, so content built before `MakeBuild` would be for the
+  wrong platform. Inside the build, Addressables 2.x builds for the `BuildPlayerOptions` actually used, with no
+  extra platform switch or domain reload, and honours `AddressablesPlayerBuildProcessor.BuildAddressablesOverride`.
+
+The setter does not mark the settings dirty, so the file normally stays untouched; if the build saved the settings,
+the scope saves them again with the original value. A failed content build throws `BuildFailedException` in
+Addressables 2.x+ but is only logged in 1.x, so the scope watches the log for "Failed to build Addressables content"
+and fails the step; `GetSource` then fails even when the player build succeeded.
 
 ## Platforms
 

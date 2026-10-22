@@ -1,0 +1,36 @@
+{
+  "name": "BuildUploader.UnitTest.Addressables",
+  "references": [
+    "VeugelJame.BuildUploader.Editor",
+    "VeugelJame.BuildUploader.Editor.Addressables",
+    "BuildUploader.UnitTest.Common",
+    "Unity.Addressables",
+    "Unity.Addressables.Editor",
+    "Unity.ResourceManager"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "autoReferenced": false,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS",
+    "BUILD_UPLOADER_TEST_FRAMEWORK",
+    "BUILD_UPLOADER_ADDRESSABLES",
+    "UNITY_2021_2_OR_NEWER"
+  ],
+  "versionDefines": [
+    {
+      "name": "com.unity.test-framework",
+      "expression": "0.0.0",
+      "define": "BUILD_UPLOADER_TEST_FRAMEWORK"
+    },
+    {
+      "name": "com.unity.addressables",
+      "expression": "1.19.4",
+      "define": "BUILD_UPLOADER_ADDRESSABLES"
+    }
+  ]
+}

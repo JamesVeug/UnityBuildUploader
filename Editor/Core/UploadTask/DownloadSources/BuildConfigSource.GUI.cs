@@ -38,6 +38,8 @@ namespace Wireframe
                 m_CleanBuild = newCleanBuild;
                 isDirty = true;
             }
+
+            DrawAddressablesCollapsed();
         }
 
         public override void OnGUIExpanded(ref bool isDirty, UploadConfig.SourceData data)
@@ -115,6 +117,8 @@ namespace Wireframe
                     }
                 }
             }
+
+            DrawAddressablesToggles(ref isDirty);
             
             if (GUILayout.Button("Apply to Editor", GUILayout.Width(120)))
             {

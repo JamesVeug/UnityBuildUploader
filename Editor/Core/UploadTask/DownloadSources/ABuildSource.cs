@@ -19,12 +19,21 @@ namespace Wireframe
     public abstract partial class ABuildSource<T> : AUploadSource, IBuildSource where T : IBuildConfig
     {
         public T BuildConfig => m_BuildConfig;
+        public bool BuildAddressables => m_BuildAddressables;
+        public bool CleanAddressables => m_CleanAddressables;
 
         [Wiki("BuildConfig", "Which config to use when creating a build")]
         protected T m_BuildConfig;
         
         [Wiki("Clean Build", "If enabled, the build folder will be deleted before building. This ensures a fresh build but may increase build time.")]
         protected bool m_CleanBuild;
+
+        [Wiki("Build Addressables", "If enabled, Addressables content is built as part of this player build, for the platform and Build Profile being built, and included in the player. " +
+                                    "Use this when the project's Addressables setting 'Build Addressables on Player Build' is off. Requires the Addressables package (1.19.4 or newer) on Unity 2021.2 or newer.")]
+        protected bool m_BuildAddressables;
+
+        [Wiki("Clean Addressables", "If enabled with Build Addressables, previously built Addressables content is deleted before the build so the content is rebuilt from scratch.")]
+        protected bool m_CleanAddressables;
         
         private string m_filePath = "";
         private bool m_appliedSettings;
@@ -43,6 +52,15 @@ namespace Wireframe
         {
             m_BuildConfig = buildConfig;
             m_CleanBuild = cleanBuild;
+        }
+
+        /// <summary>
+        /// Build Addressables content with the player, optionally cleaning previously built content first.
+        /// </summary>
+        public void SetBuildAddressables(bool buildAddressables, bool cleanAddressables = false)
+        {
+            m_BuildAddressables = buildAddressables;
+            m_CleanAddressables = cleanAddressables;
         }
 
         public override void PrepareContextForCaching()
@@ -186,7 +204,7 @@ namespace Wireframe
                 {
                     try
                     {
-                        tcs.SetResult(MakeBuild(options, stepResult));
+                        tcs.SetResult(MakeBuildWithAddressables(options, stepResult));
                     }
                     catch (Exception e)
                     {
@@ -199,7 +217,7 @@ namespace Wireframe
                     {
                         try
                         {
-                            tcs.SetResult(MakeBuild(options, stepResult));
+                            tcs.SetResult(MakeBuildWithAddressables(options, stepResult));
                         }
                         catch (Exception e)
                         {
@@ -213,7 +231,10 @@ namespace Wireframe
                 report = await tcs.Task;
                 stopwatch.Stop();
                 stepResult.AddLog($"Build completed in {stopwatch.ElapsedMilliseconds} ms ({report.summary.result})");
-                if (report.summary.result == BuildResult.Succeeded)
+
+                // Addressables 1.x only logs a failed content build and still builds the player, so the step result
+                // is the only sign the player is missing its content
+                if (report.summary.result == BuildResult.Succeeded && stepResult.Successful)
                 {
                     LastBuildUtil.SetLastBuild(m_filePath, m_context.FormatString(Context.BUILD_NAME_KEY));
                     if (BuildUploaderProjectSettings.Instance.IncludeBuildMetaDataInStreamingDataFolder)
@@ -266,6 +287,12 @@ namespace Wireframe
                 }
             }
             
+            if (!stepResult.Successful)
+            {
+                token.Cancel();
+                return false;
+            }
+
             if (report.summary.result == BuildResult.Succeeded)
             {
                 stepResult.AddLog($"Build succeeded: {report.summary.totalSize} bytes");
@@ -310,6 +337,45 @@ namespace Wireframe
             return report;
         }
 
+        /// <summary>
+        /// Makes the build, with Addressables' own "Build Addressables on Player Build" forced on if Build Addressables is set.
+        /// Addressables then builds the content inside BuildPlayer for the target and Build Profile being built. Building
+        /// the content before MakeBuild would use the wrong platform, because a Build Profile only switches platform
+        /// inside BuildPlayer.
+        /// </summary>
+        private BuildReport MakeBuildWithAddressables(BuildPlayerOptions options, UploadTaskReport.StepResult stepResult)
+        {
+            if (!m_BuildAddressables)
+            {
+                return MakeBuild(options, stepResult);
+            }
+
+            IAddressablesSupport addressables = AddressablesSupport.Implementation;
+            if (addressables == null)
+            {
+                throw new InvalidOperationException("Build Addressables is enabled but the Addressables integration is not available. " + AddressablesSupport.Requirement);
+            }
+
+            if (m_CleanAddressables)
+            {
+                stepResult.AddLog("Cleaning previously built Addressables content");
+                if (!addressables.CleanContent(stepResult))
+                {
+                    throw new InvalidOperationException("Failed to clean Addressables content. Check the logs for more details.");
+                }
+            }
+
+            IDisposable buildWithPlayer = addressables.ForceBuildWithPlayer(stepResult);
+            try
+            {
+                return MakeBuild(options, stepResult);
+            }
+            finally
+            {
+                buildWithPlayer.Dispose();
+            }
+        }
+
         public override string SourceFilePath()
         {
             return m_filePath;
@@ -318,6 +384,18 @@ namespace Wireframe
         public override void TryGetErrors(List<GUIContent> errors)
         {
             base.TryGetErrors(errors);
+
+            if (m_BuildAddressables)
+            {
+                if (!AddressablesSupport.IsAvailable)
+                {
+                    errors.Add(new GUIContent("Build Addressables is enabled but Addressables cannot be built with the player. " + AddressablesSupport.Requirement));
+                }
+                else if (!AddressablesSupport.Implementation.SettingsExist)
+                {
+                    errors.Add(new GUIContent("Build Addressables is enabled but this project has no Addressables settings. Create them in Window > Asset Management > Addressables > Groups."));
+                }
+            }
 
             if (ValidConfig(ref errors))
             {
@@ -347,6 +425,28 @@ namespace Wireframe
                         }
                     }
                 }
+            }
+        }
+
+        public override void TryGetWarnings(List<GUIContent> warnings)
+        {
+            base.TryGetWarnings(warnings);
+
+            if (!m_BuildAddressables || !AddressablesSupport.IsAvailable || !AddressablesSupport.Implementation.SettingsExist)
+            {
+                return;
+            }
+
+            if (AddressablesSupport.Implementation.BuildsWithPlayerByDefault)
+            {
+                warnings.Add(new GUIContent("Build Addressables is redundant: this project already builds Addressables content with every player build.",
+                    "Set in the Addressables settings under Build > Build Addressables on Player Build, or in the Addressables preferences when the setting defers to them."));
+            }
+
+            if (m_BuildConfig != null && (m_BuildConfig.GetBuildOptions() & BuildOptions.BuildScriptsOnly) != 0)
+            {
+                warnings.Add(new GUIContent("Build Scripts Only is enabled, so the player may not get new Addressables content.",
+                    "A scripts-only build only replaces the scripts of an earlier build. Make a full build to include new Addressables content."));
             }
         }
 
@@ -420,6 +520,8 @@ namespace Wireframe
             Dictionary<string, object> data = new Dictionary<string, object>
             {
                 { "CleanBuild", m_CleanBuild },
+                { "BuildAddressables", m_BuildAddressables },
+                { "CleanAddressables", m_CleanAddressables },
             };
             SerializeBuildConfig(data);
             return data;
@@ -440,6 +542,10 @@ namespace Wireframe
             {
                 m_CleanBuild = false;
             }
+
+            // Kept when Addressables is not installed, so the setting survives opening the project without it
+            m_BuildAddressables = data.TryGetValue("BuildAddressables", out var buildAddressablesObj) && buildAddressablesObj is bool buildAddressables && buildAddressables;
+            m_CleanAddressables = data.TryGetValue("CleanAddressables", out var cleanAddressablesObj) && cleanAddressablesObj is bool cleanAddressables && cleanAddressables;
         }
 
         public override async Task CleanUp(int configIndex, UploadTaskReport.StepResult stepResult)

@@ -15,8 +15,8 @@ namespace Wireframe.UnitTest
 {
     /// <summary>
     /// Opens a new project in a second editor of this version holding only Build Uploader and the engine modules, so
-    /// none of the packages it can optionally use are installed: Unity Pipeline (the `unity` CLI), Test Framework
-    /// (the UnitTest folder), uGUI and IDE packages. The package must compile there, and the assemblies that need
+    /// none of the packages it can optionally use are installed: Unity Pipeline (the `unity` CLI), Addressables,
+    /// Test Framework (the UnitTest folder), uGUI and IDE packages. The package must compile there, and the assemblies that need
     /// those packages must be left out instead of failing.
     /// </summary>
     public class OptionalPackagesTests
@@ -56,7 +56,8 @@ namespace Wireframe.UnitTest
             Assert.IsTrue(File.Exists(Path.Combine(scripts, "VeugelJame.BuildUploader.Editor.dll")),
                 "The package's editor assembly was not compiled. See " + log + " and " + project);
             string[] needOptionalPackages = Directory.GetFiles(scripts, "*.dll").Select(path => Path.GetFileNameWithoutExtension(path))
-                .Where(name => name.StartsWith("BuildUploader.UnitTest.") || name == "VeugelJame.BuildUploader.Editor.UnityPipeline")
+                .Where(name => name.StartsWith("BuildUploader.UnitTest.") || name == "VeugelJame.BuildUploader.Editor.UnityPipeline" ||
+                               name == "VeugelJame.BuildUploader.Editor.Addressables")
                 .ToArray();
             CollectionAssert.IsEmpty(needOptionalPackages, "These assemblies need an optional package and must be left out without it.");
 

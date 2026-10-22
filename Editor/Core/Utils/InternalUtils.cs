@@ -5,6 +5,9 @@ using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("veugeljame.builduploader.editor.services.apple")]
 [assembly: InternalsVisibleTo("VeugelJame.BuildUploader.Editor.UnityPipeline")]
+[assembly: InternalsVisibleTo("VeugelJame.BuildUploader.Editor.Addressables")]
+[assembly: InternalsVisibleTo("BuildUploader.UnitTest.Addressables")]
+[assembly: InternalsVisibleTo("BuildUploader.UnitTest.Builds")]
 [assembly: InternalsVisibleTo("BuildUploader.UnitTest.Discord")]
 [assembly: InternalsVisibleTo("BuildUploader.UnitTest.Itchio")]
 [assembly: InternalsVisibleTo("BuildUploader.UnitTest.Core")]

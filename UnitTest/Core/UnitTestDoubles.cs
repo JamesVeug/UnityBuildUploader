@@ -89,6 +89,22 @@ namespace Wireframe.UnitTest
         public override void Deserialize(Dictionary<string, object> data) { }
     }
 
+    /// <summary>Stands in for the Addressables integration so build sources can be checked without the package.</summary>
+    internal class UnitTestAddressablesSupport : IAddressablesSupport
+    {
+        public bool SettingsExist { get; set; } = true;
+        public bool BuildsWithPlayerByDefault { get; set; }
+
+        public bool CleanContent(UploadTaskReport.StepResult stepResult) => true;
+
+        public System.IDisposable ForceBuildWithPlayer(UploadTaskReport.StepResult stepResult) => new Scope();
+
+        private sealed class Scope : System.IDisposable
+        {
+            public void Dispose() { }
+        }
+    }
+
     /// <summary>Destination whose upload always fails, optionally without recording a fail reason.</summary>
     public class UnitTestFailingDestination : AUploadDestination
     {

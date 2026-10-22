@@ -20,6 +20,11 @@
       "name": "com.unity.test-framework",
       "expression": "0.0.0",
       "define": "BUILD_UPLOADER_TEST_FRAMEWORK"
+    },
+    {
+      "name": "com.unity.addressables",
+      "expression": "1.19.4",
+      "define": "BUILD_UPLOADER_ADDRESSABLES"
     }
   ]
 }

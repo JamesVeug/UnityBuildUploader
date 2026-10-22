@@ -31,8 +31,10 @@ Before editing, read the file that matches your task.
 6. Types register by reflection: subclass plus `[UploadSource]`/`[UploadModifier]`/`[UploadDestination]`/
    `[UploadAction]`. Every non-abstract subclass in any loaded assembly is picked up; never register manually.
 7. Keep optional integrations isolated. `com.unity.pipeline` code lives only in
-   `Editor/Integrations/UnityPipeline` (own asmdef, `BUILD_UPLOADER_PIPELINE`); the wiki exporter needs
-   `BUILD_UPLOADER_WIKI`. Core must compile without either.
+   `Editor/Integrations/UnityPipeline` (own asmdef, `BUILD_UPLOADER_PIPELINE`); `com.unity.addressables` code
+   only in `Editor/Integrations/Addressables` (own asmdef, `BUILD_UPLOADER_ADDRESSABLES`, Unity 2021.2+), which
+   core reaches through `AddressablesSupport`; the wiki exporter needs `BUILD_UPLOADER_WIKI`. Core must compile
+   without any of them.
 8. Platform and process code goes through `BuildUtils` and `ProcessUtils`. Unity-internal `BuildProfile` APIs
    go through the reflection helpers in `BuildProfileWrapper`.
 9. Split non-trivial classes into `.cs`, `.GUI.cs` and `.StringContextModifier.cs`. Call `FormatString` on
@@ -46,7 +48,7 @@ Before editing, read the file that matches your task.
 | Utilities | `Editor/Core/Utils/` — `BuildUtils`, `ProcessUtils`, `IOUtils`, `ZipUtils`, `JSON/`, `StringFormatting/`, `BatchModeUtil` |
 | Settings | `Editor/Core/Data/` — `Preferences`, `BuildUploaderProjectSettings`, settings providers |
 | Services | `Editor/Services/<Name>Service/` (Slack is the reference) |
-| Integrations | `Editor/Integrations/UnityPipeline/` |
+| Integrations | `Editor/Integrations/UnityPipeline/` (the `unity` CLI), `Editor/Integrations/Addressables/` (Build Addressables) |
 | Wiki export | `Editor/Core/Wiki/` |
 | Tests | `UnitTest/` — see `UnitTest/README.md` |
 
