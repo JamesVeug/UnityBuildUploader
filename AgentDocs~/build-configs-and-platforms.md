@@ -26,7 +26,10 @@ player settings (`StackTraceLogTypes`, `StrippingLevel`, `ScriptingBackend`, `Co
 
 - `ExtraScriptingDefines` **replaces** the target's define list (`PlayerSettings.SetScriptingDefineSymbols`),
   despite the name. A changed list triggers a recompile and domain reload, which destroys the running
-  in-memory `UploadTask` (issues #107/#108).
+  in-memory `UploadTask` (issues #107/#108). This only happens outside batch mode: there `GetSource` waits
+  for compilation and the reload comes first. In batch mode it builds straight after applying the settings, so
+  the task finishes before the editor recompiles. `ScriptingDefineBuildTests` reproduces it only in an editor
+  started without `-batchmode`.
 - `BuildConfig` implements `DropdownElement`: `Id` is popup order and is rewritten on reorder; `GUID` is the
   stable 6-char identifier serialized into `BuildConfigSource`. **Never reuse a deleted GUID.**
 - `BuildConfigSource` serializes an optional platform override (`m_OverrideSwitchTargetPlatform` +

@@ -83,7 +83,7 @@ two action steps. If one with `StopTaskIfFailed` fails, the remaining "no" steps
   ("Nowhere") and turn off cache deletion.
 - The report is saved (if `Preferences.AutoSaveReportToCacheFolder`) only after all steps finish.
   A domain reload mid-task (e.g. a BuildConfig changing scripting defines) loses the task with no
-  report — open issue #107.
+  report — open issue #107 (reproduced by `ScriptingDefineBuildTests` in an editor started without `-batchmode`).
 
 ## Preferences that change behaviour
 

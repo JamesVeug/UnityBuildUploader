@@ -43,7 +43,7 @@ namespace Wireframe.UnitTest
         }
 #endif
 
-        private static BuildTarget ActiveDesktopTarget()
+        internal static BuildTarget ActiveDesktopTarget()
         {
             BuildTarget target = EditorUserBuildSettings.activeBuildTarget;
             if (target != BuildTarget.StandaloneWindows64 && target != BuildTarget.StandaloneOSX && target != BuildTarget.StandaloneLinux64)
@@ -87,10 +87,14 @@ namespace Wireframe.UnitTest
             uploadTask.SetBuildDescription("UploadTask build-profile integration test");
             yield return TestSupport.Run(uploadTask);
 
+            Assert.IsTrue(HasPlayer(root, target), "UploadTask reported success without a player output under " + root);
+        }
+
+        internal static bool HasPlayer(string root, BuildTarget target)
+        {
             string extension = target == BuildTarget.StandaloneOSX ? ".app" : target == BuildTarget.StandaloneWindows64 ? ".exe" : ".x86_64";
-            Assert.IsTrue(Directory.GetFiles(root, "*" + extension, SearchOption.AllDirectories).Length > 0 ||
-                          Directory.GetDirectories(root, "*" + extension, SearchOption.AllDirectories).Length > 0,
-                "UploadTask reported success without a player output under " + root);
+            return Directory.GetFiles(root, "*" + extension, SearchOption.AllDirectories).Length > 0 ||
+                   Directory.GetDirectories(root, "*" + extension, SearchOption.AllDirectories).Length > 0;
         }
     }
 }
