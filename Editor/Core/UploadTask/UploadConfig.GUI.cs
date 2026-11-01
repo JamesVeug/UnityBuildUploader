@@ -268,7 +268,7 @@ namespace Wireframe
                 {
                     GUIContent iconContent = new GUIContent(Utils.WarningIcon, "Warning: " + content.tooltip);
                     GUILayout.Label(iconContent, EditorStyles.label, GUILayout.Width(15), GUILayout.Height(15));
-                    GUILayout.Label(content);
+                    GUILayout.Label(content, EditorStyles.wordWrappedLabel);
                     DrawSettingsLinkButton(content, color);
                 }
             }
@@ -286,7 +286,7 @@ namespace Wireframe
                 {
                     GUIContent iconContent = new GUIContent(Utils.ErrorIcon, "Error: " + content.tooltip);
                     GUILayout.Label(iconContent, EditorStyles.label, GUILayout.Width(15), GUILayout.Height(15));
-                    GUILayout.Label(content);
+                    GUILayout.Label(content, EditorStyles.wordWrappedLabel);
                     DrawSettingsLinkButton(content, color);
                 }
             }
