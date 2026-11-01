@@ -19,6 +19,7 @@ namespace Wireframe
         }
 
         public override StepType Type => StepType.PrepareSources;
+        public override bool CanRerunAfterReload => true;
         
         public override async Task<bool> Run(UploadTask uploadTask, UploadTaskReport report,
             CancellationTokenSource token)

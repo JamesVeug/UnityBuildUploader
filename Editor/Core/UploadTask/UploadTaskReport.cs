@@ -6,9 +6,9 @@ using UnityEngine;
 
 namespace Wireframe
 {
-    public class UploadTaskReport
+    public partial class UploadTaskReport
     {
-        public class StepResult
+        public partial class StepResult
         {
             public class Log
             {
@@ -157,7 +157,7 @@ namespace Wireframe
         public DateTime EndTime { get; private set; }
         public string GUID { get; private set; }
         public string Name { get; private set; }
-        
+
         private readonly bool m_invokeDebugLogs;
         private AUploadTask_Step.StepProcess m_process;
 
@@ -285,8 +285,9 @@ namespace Wireframe
                     for (var i = 0; i < stepResult.Count; i++)
                     {
                         StepResult result = stepResult[i];
-                        if (result.Logs.Count == 0)
+                        if (result.Logs.Count == 0 && string.IsNullOrEmpty(result.FailReason))
                         {
+                            // A failure is written even without logs, or its reason would be lost from the file
                             continue;
                         }
 
@@ -295,7 +296,7 @@ namespace Wireframe
                         {
                             sb.AppendLine($"[FAILED] {result.FailReason}");
                         }
-                            
+
                         foreach (StepResult.Log log in result.Logs)
                         {
                             sb.AppendLine($"[{log.Type}] {log.Message}");

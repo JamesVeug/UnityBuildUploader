@@ -12,13 +12,16 @@ using UnityEngine.TestTools;
 namespace Wireframe.UnitTest
 {
     /// <summary>
-    /// #107: a BuildConfig whose scripting defines differ from the editor's makes Unity recompile scripts. The domain
-    /// reload destroys the running UploadTask, so no player is built, no report is saved and the Upload Tasks window
-    /// never lists the task.
+    /// #107: a BuildConfig whose scripting defines differ from the editor's makes Unity recompile scripts, and the
+    /// domain reload destroys the running UploadTask. The task must resume from its checkpoint, build the player,
+    /// save its report and stay in the Upload Tasks window. Outside batch mode only: batch mode builds before the
+    /// editor recompiles, so it passes there either way.
     /// </summary>
     public class ScriptingDefineBuildTests
     {
         private const string AddedDefine = "BUILD_UPLOADER_TEST_CHANGED_DEFINES";
+
+        private static Task s_run;
 
         // The test runner keeps serialized fields across a domain reload; locals and statics are reset
         [SerializeField] private bool m_changedEditor;
@@ -28,10 +31,9 @@ namespace Wireframe.UnitTest
         [SerializeField] private string[] m_editorDefines;
         [SerializeField] private bool m_previousSaveReport;
 
-        private static Task s_run;
-
         [UnityTest]
         [Category("BuildUploader.PlayerBuild")]
+        [Timeout(20 * 60 * 1000)] // The default 180 s also counts the recompile, the reload and the build after it
         public IEnumerator BuildThatChangesScriptingDefinesFinishes()
         {
             m_target = DesktopBuildTests.ActiveDesktopTarget();
@@ -62,16 +64,23 @@ namespace Wireframe.UnitTest
             s_run = uploadTask.StartAsync(false);
             yield return new WaitForTaskOrDomainReload(s_run, 15 * 60);
 
-            var problems = new List<string>();
             if (s_run == null)
             {
-                problems.Add("Scripts reloaded while the task was running.");
+                // Scripts reloaded, so UploadTaskResumer carries the task on from its checkpoint once the editor is idle
+                yield return TestSupport.WaitUntil(() => UploadTask.AllTasks.Any(task => task.GUID == m_taskGuid), 5 * 60,
+                    "The task was not resumed after scripts reloaded");
+                UploadTask resumed = UploadTask.AllTasks.First(task => task.GUID == m_taskGuid);
+                if (resumed.RunTask != null) // Null when the checkpoint could not be resumed, which the checks below report
+                {
+                    yield return TestSupport.Await(resumed.RunTask, 15 * 60);
+                }
             }
             else
             {
                 s_run.GetAwaiter().GetResult();
             }
 
+            var problems = new List<string>();
             UploadTask finished = UploadTask.AllTasks.FirstOrDefault(task => task.GUID == m_taskGuid);
             if (finished != null && !finished.IsSuccessful)
             {
@@ -108,6 +117,14 @@ namespace Wireframe.UnitTest
             m_changedEditor = false;
             s_run = null;
             Preferences.AutoSaveReportToCacheFolder = m_previousSaveReport;
+
+            // Stop a task that is still running, or the reload after restoring the defines would resume it
+            foreach (UploadTask task in UploadTask.AllTasks.Where(task => task.GUID == m_taskGuid && !task.IsComplete))
+            {
+                task.Cancel();
+                task.Abandon();
+            }
+            UploadTaskCheckpoints.Delete(UploadTaskCheckpoints.FilePath(UploadTaskCheckpoints.FolderPath, m_taskGuid));
             UploadTask.AllTasks.RemoveAll(task => task.GUID == m_taskGuid);
             foreach (string report in SavedReports(m_taskGuid))
             {

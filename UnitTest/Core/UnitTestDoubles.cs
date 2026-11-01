@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Wireframe.UnitTest
@@ -175,5 +176,89 @@ namespace Wireframe.UnitTest
         protected internal override void OnGUIExpanded(ref bool isDirty) { }
         public override Dictionary<string, object> Serialize() => new Dictionary<string, object>();
         public override void Deserialize(Dictionary<string, object> data) { }
+    }
+
+    /// <summary>
+    /// Source that blocks inside GetSource until the test releases it, so a test can stop a task mid-step as a
+    /// script reload would. Its files come from Folder. Takes no build lock.
+    /// </summary>
+    public class UnitTestGateSource : AUploadSource
+    {
+        private readonly TaskCompletionSource<bool> m_release = new TaskCompletionSource<bool>();
+
+        public string Folder { get; set; } = "";
+        public bool HasEntered { get; private set; }
+
+        public UnitTestGateSource() { }
+
+        public UnitTestGateSource(string folder)
+        {
+            Folder = folder;
+        }
+
+        public void Release()
+        {
+            m_release.TrySetResult(true);
+        }
+
+        public override async Task<bool> GetSource(bool doNotCache, UploadConfig uploadConfig, UploadTaskReport.StepResult stepResult, CancellationTokenSource token)
+        {
+            HasEntered = true;
+            return await m_release.Task;
+        }
+
+        public override string SourceFilePath() => Folder;
+        public override string Summary() => "Waits for the test";
+        public override void OnGUIExpanded(ref bool isDirty, UploadConfig.SourceData data) { }
+        public override void OnGUICollapsed(ref bool isDirty, float maxWidth) { }
+        public override Dictionary<string, object> Serialize() => new Dictionary<string, object> { ["folder"] = Folder };
+
+        public override void Deserialize(Dictionary<string, object> data)
+        {
+            Folder = data != null && data.TryGetValue("folder", out object folder) ? folder as string ?? "" : "";
+        }
+    }
+
+    /// <summary>
+    /// Source that counts how often it runs, across instances with the same Id. It saves no run state, so a task
+    /// resumed after a script reload runs it again. Its files come from Folder.
+    /// </summary>
+    public class UnitTestCountingSource : AUploadSource
+    {
+        private static readonly Dictionary<string, int> s_runs = new Dictionary<string, int>();
+
+        public string Id { get; set; } = "";
+        public string Folder { get; set; } = "";
+
+        public UnitTestCountingSource() { }
+
+        public UnitTestCountingSource(string id, string folder)
+        {
+            Id = id;
+            Folder = folder;
+        }
+
+        public static int Runs(string id)
+        {
+            return s_runs.TryGetValue(id, out int runs) ? runs : 0;
+        }
+
+        public override Task<bool> GetSource(bool doNotCache, UploadConfig uploadConfig, UploadTaskReport.StepResult stepResult, CancellationTokenSource token)
+        {
+            s_runs[Id] = Runs(Id) + 1;
+            return Task.FromResult(true);
+        }
+
+        public override string SourceFilePath() => Folder;
+        public override string Summary() => "Counts its runs";
+        public override void OnGUIExpanded(ref bool isDirty, UploadConfig.SourceData data) { }
+        public override void OnGUICollapsed(ref bool isDirty, float maxWidth) { }
+        public override Dictionary<string, object> Serialize() => new Dictionary<string, object> { ["id"] = Id, ["folder"] = Folder };
+
+        public override void Deserialize(Dictionary<string, object> data)
+        {
+            Id = data != null && data.TryGetValue("id", out object id) ? id as string ?? "" : "";
+            Folder = data != null && data.TryGetValue("folder", out object folder) ? folder as string ?? "" : "";
+        }
     }
 }

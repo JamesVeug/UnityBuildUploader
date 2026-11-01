@@ -26,10 +26,16 @@ player settings (`StackTraceLogTypes`, `StrippingLevel`, `ScriptingBackend`, `Co
 
 - `ExtraScriptingDefines` **replaces** the target's define list (`PlayerSettings.SetScriptingDefineSymbols`),
   despite the name. A changed list triggers a recompile and domain reload, which destroys the running
-  in-memory `UploadTask` (issues #107/#108). This only happens outside batch mode: there `GetSource` waits
-  for compilation and the reload comes first. In batch mode it builds straight after applying the settings, so
-  the task finishes before the editor recompiles. `ScriptingDefineBuildTests` reproduces it only in an editor
-  started without `-batchmode`.
+  in-memory `UploadTask` (#107). The task resumes from its checkpoint (see `pipeline.md` → Resuming after a
+  script reload): GetSources runs again, the source applies the same defines (no second recompile) and builds.
+  The reload only happens outside batch mode, where `GetSource` waits for compilation. In batch mode it builds
+  straight after applying the settings, before the editor recompiles. `ScriptingDefineBuildTests` covers it in
+  an editor started without `-batchmode`.
+- Outside batch mode `GetSource` starts `BuildPlayer` on the next `EditorApplication.update`, not `delayCall`, which
+  waits for a repaint that doesn't come while Unity is in the background (as it often is after a reload).
+- A resumed `BuildConfigSource` restores its whole `BuildConfig` from its run state when the GUID can't be found
+  (configs made in code, or deleted since), and `m_buildConfigToApply`, because PrepareSources doesn't run again.
+  `m_appliedSettings` is restored with its running-builds count, and `GetSource` only counts it once.
 - `BuildConfig` implements `DropdownElement`: `Id` is popup order and is rewritten on reorder; `GUID` is the
   stable 6-char identifier serialized into `BuildConfigSource`. **Never reuse a deleted GUID.**
 - `BuildConfigSource` serializes an optional platform override (`m_OverrideSwitchTargetPlatform` +

@@ -18,6 +18,7 @@ namespace Wireframe
         }
 
         public override StepType Type => StepType.Validation;
+        public override bool CanRerunAfterReload => true;
         public override bool RequiresEverythingBeforeToSucceed => false;
         public override bool FireActions => false;
 

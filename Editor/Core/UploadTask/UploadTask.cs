@@ -133,15 +133,26 @@ namespace Wireframe
         /// <returns>Report regarding if the upload was successful or not aswell as all the logs</returns>
         public async Task StartAsync(bool invokeDebugLogs=true)
         {
-            m_progressId = ProgressUtils.Start("Build Uploader Window", "Setting up...");
+            Prepare(invokeDebugLogs);
+            RunTask = RunAsync(CreateSteps(), 0);
+            await RunTask;
+        }
+
+        /// <summary>
+        /// Everything a task does once before its first step. A resumed task skips this so its upload and build
+        /// numbers aren't bumped again.
+        /// </summary>
+        private void Prepare(bool invokeDebugLogs)
+        {
             m_report = new UploadTaskReport(m_guid, UploadName, invokeDebugLogs);
             m_cachedLocations = new string[m_uploadConfigs.Count];
             m_cachedLocationNeedsCleaning = new bool[m_uploadConfigs.Count];
-            IsComplete = false;
-            PercentComplete = 0f;
             IsSuccessful = false;
-            HasStarted = true;
             CurrentStepType = AUploadTask_Step.StepType.Validation;
+            m_checkpointFolder = UploadTaskCheckpoints.FolderPath;
+            m_checkpointStep = AUploadTask_Step.StepType.Validation;
+            m_interruptions = 0;
+            m_completedSources.Clear();
             BuildUploaderProjectSettings.BumpUploadNumber();
 
             for (var i = 0; i < m_uploadConfigs.Count; i++)
@@ -149,7 +160,7 @@ namespace Wireframe
                 m_uploadConfigs[i].SetContextAndCacheCallbacks(m_context);
             }
             m_context.CacheCallbacks();
-            
+
             for (var i = 0; i < m_actions.Count; i++)
             {
                 if (m_actions[i].UploadAction != null)
@@ -159,8 +170,13 @@ namespace Wireframe
                 }
             }
 
+            IsSuccessful = true;
+        }
+
+        private AUploadTask_Step[] CreateSteps()
+        {
             // Executed in order
-            AUploadTask_Step[] steps = new AUploadTask_Step[]
+            return new AUploadTask_Step[]
             {
                 // Setup - Always executed
                 new UploadTaskStep_Validate(m_context), // Make sure the sources are ready before we retrieve them
@@ -178,22 +194,52 @@ namespace Wireframe
                 new UploadTaskStep_PostUploadActions(m_context), // Execute actions after we finish the upload progress
                 new UploadTaskStep_Cleanup(m_context), // Clean up the task, delete cached files, etc.
             };
-            m_currentSteps = steps;
-            m_totalSteps = steps.Length;
-            
-            // Set up Context to display task-specific strings
-            SetupContext(m_report);
-            
-            // Run the Build Uploader
-            await Execute(steps);
+        }
 
-            IsComplete = true;
-            PercentComplete = 1f;
-            IsSuccessful = m_report.Successful && !IsCancelled;
-            
-            ProgressUtils.Remove(m_progressId);
-            m_report.Complete();
-            await SaveReport();
+        /// <summary>
+        /// Runs the steps from startStep on, then finishes the task. Starting a task runs every step; a task resumed
+        /// after a script reload starts at the step it was on.
+        /// </summary>
+        private async Task RunAsync(AUploadTask_Step[] steps, int startStep)
+        {
+            s_liveTasks.Add(m_guid);
+            try
+            {
+                m_progressId = ProgressUtils.Start("Build Uploader Window", "Setting up...");
+                IsComplete = false;
+                PercentComplete = (float)startStep / steps.Length;
+                HasStarted = true;
+                m_currentSteps = steps;
+                m_totalSteps = steps.Length;
+
+                // Set up Context to display task-specific strings
+                SetupContext(m_report);
+
+                // Run the Build Uploader
+                await Execute(steps, startStep);
+                if (m_debugForceStopTask)
+                {
+                    ProgressUtils.Remove(m_progressId);
+                    return;
+                }
+
+                IsComplete = true;
+                PercentComplete = 1f;
+                IsSuccessful = m_report.Successful && !IsCancelled;
+
+                ProgressUtils.Remove(m_progressId);
+                m_report.Complete();
+                await SaveReport();
+                UploadTaskCheckpoints.Delete(UploadTaskCheckpoints.FilePath(m_checkpointFolder, m_guid));
+            }
+            finally
+            {
+                if (!m_debugForceStopTask)
+                {
+                    s_liveTasks.Remove(m_guid);
+                }
+            }
+
             OnComplete?.Invoke(m_report);
         }
 
@@ -202,16 +248,19 @@ namespace Wireframe
         /// the Upload window, the CLI, batch mode - goes through StartAsync, so saving here is what makes a
         /// run show up in the Upload Tasks window no matter how it was started.
         /// </summary>
-        private async Task SaveReport()
+        private Task SaveReport()
+        {
+            return SaveReport(m_report, m_uploadConfigs.Select(x => x.GUID).ToList());
+        }
+
+        internal static async Task SaveReport(UploadTaskReport report, List<string> configGUIDs)
         {
             if (!Preferences.AutoSaveReportToCacheFolder)
             {
                 return;
             }
 
-            string guids = string.Join("_", m_uploadConfigs.Select(x => x.GUID));
-            string fileName = $"UploadReport_{guids}_{m_report.StartTime:yyyy-MM-dd_HH-mm-ss}.txt";
-            string reportPath = Path.Combine(WindowUploadTab.UploadReportSaveDirectory, fileName);
+            string reportPath = ReportPath(configGUIDs, report.StartTime);
             try
             {
                 if (!Directory.Exists(WindowUploadTab.UploadReportSaveDirectory))
@@ -220,13 +269,24 @@ namespace Wireframe
                 }
 
                 Debug.Log($"[BuildUploader] Writing upload task report to {reportPath}");
-                await IOUtils.WriteAllTextAsync(reportPath, m_report.GetReport());
+                await IOUtils.WriteAllTextAsync(reportPath, report.GetReport());
             }
             catch (Exception e)
             {
                 Debug.LogError($"[BuildUploader] Failed to write report to {reportPath}");
                 Debug.LogException(e);
             }
+        }
+
+        /// <summary>
+        /// Where a task's report is saved. It depends only on the configs and the start time, so a resumed task
+        /// writes to the same file.
+        /// </summary>
+        internal static string ReportPath(IEnumerable<string> configGUIDs, DateTime startTime)
+        {
+            string guids = string.Join("_", configGUIDs);
+            string fileName = $"UploadReport_{guids}_{startTime:yyyy-MM-dd_HH-mm-ss}.txt";
+            return Path.Combine(WindowUploadTab.UploadReportSaveDirectory, fileName);
         }
 
         private T GetStep<T>()
@@ -256,10 +316,9 @@ namespace Wireframe
             m_cancellationToken?.Cancel(); // Calls OnCancelled which knock-on updates everything
         }
 
-        private async Task Execute(AUploadTask_Step[] steps)
+        private async Task Execute(AUploadTask_Step[] steps, int startStep)
         {
-            // Do upload steps
-            IsSuccessful = true;
+            // Do upload steps. IsSuccessful is not reset here: a resumed task keeps an earlier failure.
             CancellationTokenSource token = m_cancellationToken = new CancellationTokenSource();
             token.Token.Register(OnCancelled);
             if (IsCancelled)
@@ -267,7 +326,7 @@ namespace Wireframe
                 token.Cancel();
             }
 
-            for (int i = 0; i < steps.Length; i++)
+            for (int i = startStep; i < steps.Length && !m_debugForceStopTask; i++)
             {
                 AUploadTask_Step step = steps[i];
                 CurrentStep = step;
@@ -276,7 +335,10 @@ namespace Wireframe
                 {
                     continue;
                 }
-                
+
+                // Saved before every step so a script reload can resume the task from here
+                Checkpoint(step.Type, CheckpointPhase.Running);
+
                 // Perform the Step (GetSources, CacheSources, etc.)
                 m_report.SetProcess(AUploadTask_Step.StepProcess.Intra);
                 Task<bool> intraTask;
@@ -297,6 +359,10 @@ namespace Wireframe
                     float progress = m_report.GetProgress(step.Type, AUploadTask_Step.StepProcess.Intra);
                     SetProgress(i, progress, CurrentStepType.ToString());
                     await Task.Yield();
+                    if (m_debugForceStopTask)
+                    {
+                        return;
+                    }
                 }
                 bool stepSuccessful = intraTask.Result;
                 SetProgress(i, 1f, CurrentStepType.ToString());
@@ -327,6 +393,7 @@ namespace Wireframe
 
                 if (step.FireActions)
                 {
+                    Checkpoint(step.Type, CheckpointPhase.Actions);
                     bool actionsSuccessful = await ExecuteTaskActions(stepSuccessful, UploadConfig.UploadActionData.UploadTrigger.AfterEachStepCompletes);
                     if (!actionsSuccessful)
                     {

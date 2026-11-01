@@ -10,6 +10,7 @@ row to [`UntestedFixes.md`](UntestedFixes.md) instead, saying what would make it
 | Assembly | Fixture | Needs | Covers |
 | --- | --- | --- | --- |
 | `BuildUploader.UnitTest.Core` | `UploadTaskTests` | Nothing | UploadTask end to end on every host: folder/file sources, local path destination, cache and cleanup, validation failure, exclude/compress/decompress, action triggers and status, config post-actions, failing destinations, cancellation, disabled configs, duplicate files, `{key}` formatting, failed actions with and without Stop task if this fails, Invoke Static Method before a build |
+| | `UploadTaskResumeTests` | Nothing | Tasks resumed from a checkpoint as after a script reload (#107): no repeated numbers, Validation or start actions, finished sources skipped and ones without run state run again, an interrupted Upload fails then cleans up, interrupted after-step actions, the reload limit, checkpoints that no longer load, resuming or discarding tasks from a closed session, report and `BuildConfigSource` round trips |
 | | `SavedTypeResolutionTests` | Nothing | Actions and destinations from other assemblies reload from a saved profile with their data; the JSON still names types by full name |
 | | `InvokeStaticMethodActionTests` | Nothing | Invoke Static Method: public, private, nested and assembly-qualified methods; `bool`, `int`, `Task`, `Task<bool>`, `Task<int>` and `StepResult` shapes; UniTask (through the stand-in in `UnitTestUniTask.cs`) and `IEnumerator` coroutines; return types rejected by validation; exceptions; every path error, including a type in two assemblies |
 | | `BuildSourceAddressablesTests` | Nothing | Build Addressables and Clean Addressables are saved, default to off in older JSON, are kept without Addressables, and are validated (uses a stand-in for the integration) |
@@ -27,7 +28,7 @@ row to [`UntestedFixes.md`](UntestedFixes.md) instead, saying what would make it
 | `BuildUploader.UnitTest.Itchio` | `ItchioWebGLTests` | Native Butler | `ItchioDestination` `push --dry-run` of an HTML fixture on channel `html5` |
 | `BuildUploader.UnitTest.Steam` | `SteamPreviewTests` | SteamCMD + authorized account | `SteamUploadDestination` preview upload, branch `none`; nothing goes live |
 | `BuildUploader.UnitTest.Builds` | `DesktopBuildTests` | Desktop build module | One player for the active Win64/macOS/Linux64 target through `BuildProfileSource` (Unity 6) or `BuildConfigSource` (2019/2022) into `LocalPathDestination`. `OneBuildWithAddressablesContent` (compiled only with Addressables 1.19.4+ on 2021.2+, and needs Addressables settings in the project) builds with Build Addressables and checks the player has `StreamingAssets/aa/catalog.*` |
-| | `ScriptingDefineBuildTests` | Desktop build module; an editor started without `-batchmode` to catch #107 | A `BuildConfigSource` whose defines differ from the editor's builds a player, saves its report and stays in the Upload Tasks window, with assembly reloads allowed as they are outside tests. Fails without `-batchmode` until #107 is fixed. Passes in batch mode (CI) even with the bug, because batch mode builds before the editor recompiles |
+| | `ScriptingDefineBuildTests` | Desktop build module; an editor started without `-batchmode` to cover #107 | A `BuildConfigSource` whose defines differ from the editor's reloads scripts mid-task, and the task resumes, builds a player, saves its report and stays in the Upload Tasks window. Assembly reloads are allowed as they are outside tests. In batch mode (CI) the build happens before the editor recompiles, so it passes there without reloading |
 | | `OptionalPackagesTests` | Nothing (starts a second editor, a few minutes) | A new project with only the package and the engine modules (plus SharpZipLib before 2021.1) compiles, and leaves out the assemblies that need Unity Pipeline or Test Framework |
 | `BuildUploader.UnitTest.Addressables` | `AddressablesIntegrationTests` | Addressables 1.19.4+ on Unity 2021.2+ (not in CI) | Build With Player is forced for one build and restored, also when the build throws or the settings were saved meanwhile; left alone when already on; a logged content build failure fails the step; the Build Addressables action (builds the project's own content when it has Addressables settings) |
 | `BuildUploader.UnitTest.Common` | `TestSupport` | — | Helpers: `Run`, `Execute`, `Await`, `WaitUntil`, `OutputDirectory`, `FixtureDirectory`, `RequiredEnvironment` |
@@ -55,6 +56,11 @@ row to [`UntestedFixes.md`](UntestedFixes.md) instead, saying what would make it
   `finally` / `TearDown`. A cached Steam login status of *Unknown* is not restored (it is cleared).
 - Every task bumps `TotalUploadTasksStarted` and every build bumps `LastBuildNumber` in
   `<HostProject>/BuildUploader/ProjectSettings.json`. Run in a disposable copy or revert that file afterwards.
+- Running tasks save checkpoints to `<HostProject>/Library/BuildUploader/InProgressTasks/` so they can resume after
+  a script reload. Core fixtures that run tasks point `UploadTaskCheckpoints.FolderPath` at an output folder in
+  `SetUp` and restore it in `TearDown`, so a test task that doesn't finish is never resumed in the project. Do the
+  same in a new fixture that runs tasks. `ScriptingDefineBuildTests` uses the real folder, because it needs the
+  resume after a real reload, and deletes its checkpoint in `TearDown`.
 
 ## Writing tests
 
@@ -64,7 +70,8 @@ row to [`UntestedFixes.md`](UntestedFixes.md) instead, saying what would make it
   for failure paths. Pass a timeout so a hung task fails instead of stalling CI.
 - Keep `Core` free of credentials, network and player builds. Fake external tools instead: `FakeSteamSdk` builds
   an SDK folder whose `steamcmd.sh` prints canned output and records its HOME. Pipeline doubles
-  (`UnitTestRecordingAction`, `UnitTestFailingAction`, `UnitTestFailingDestination`, `UnitTestGateDestination`) live in
+  (`UnitTestRecordingAction`, `UnitTestFailingAction`, `UnitTestFailingDestination`, `UnitTestGateDestination`,
+  `UnitTestGateSource`, `UnitTestCountingSource`) live in
   `Core/UnitTestDoubles.cs`; like every pipeline type they are found by reflection and appear in the host's pickers.
   Methods for Invoke Static Method are in `Core/UnitTestStaticMethods.cs`.
 - The host CI runner requires **every** `[Test]`/`[UnityTest]` declared in any `Core/*.cs` file to pass, matched by

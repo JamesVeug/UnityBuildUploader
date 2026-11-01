@@ -63,6 +63,12 @@ namespace Wireframe
         public abstract StepType Type { get; }
         public virtual bool RequiresEverythingBeforeToSucceed => true;
         public virtual bool FireActions => true;
+
+        /// <summary>
+        /// Whether a task resumed after a script reload interrupted this step may run it again from the start.
+        /// Steps with effects outside the editor (uploads, messages) or that change files in place must not.
+        /// </summary>
+        public virtual bool CanRerunAfterReload => false;
         public abstract Task<bool> Run(UploadTask uploadTask, UploadTaskReport report, CancellationTokenSource token);
         public abstract Task<bool> PostRunResult(UploadTask uploadTask, UploadTaskReport report, bool allStepsSuccessful);
         

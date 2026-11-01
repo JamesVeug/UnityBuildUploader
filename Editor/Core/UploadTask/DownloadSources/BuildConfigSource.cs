@@ -122,9 +122,9 @@ namespace Wireframe
                 m_TargetPlatform = BuildTargetGroup.Standalone;
             }
             
-            if (data.TryGetValue("TargetPlatformSubTarget", out var targetPlatformSubTargetObj) && targetPlatformSubTargetObj is long targetPlatformSubTarget)
+            if (data.TryGetValue("TargetPlatformSubTarget", out var targetPlatformSubTargetObj) && (targetPlatformSubTargetObj is long || targetPlatformSubTargetObj is int))
             {
-                m_TargetPlatformSubTarget = (int)targetPlatformSubTarget;
+                m_TargetPlatformSubTarget = Convert.ToInt32(targetPlatformSubTargetObj);
             }
             else
             {
@@ -144,14 +144,54 @@ namespace Wireframe
                 m_Target = BuildTarget.StandaloneWindows64;
             }
             
-            if (data.TryGetValue("TargetArchitecture", out var targetArchitectureObj) && targetArchitectureObj is int targetArchitecture)
+            // Saved as an int but read back from JSON as a long
+            if (data.TryGetValue("TargetArchitecture", out var targetArchitectureObj) && (targetArchitectureObj is long || targetArchitectureObj is int))
             {
-                m_TargetArchitecture = (BuildUtils.Architecture)targetArchitecture;
+                m_TargetArchitecture = (BuildUtils.Architecture)Convert.ToInt32(targetArchitectureObj);
             }
             else
             {
                 m_TargetArchitecture = BuildUtils.Architecture.x64;
             }
+        }
+
+        /// <summary>
+        /// Serializes the runtime state of an Upload Task so it can be rerun later (ie: if there is a mid-run recompile
+        /// which clears all tasks and static data)
+        /// </summary>
+        public override Dictionary<string, object> CaptureRunState()
+        {
+            Dictionary<string, object> state = base.CaptureRunState();
+
+            // A config made in code, or one deleted since, can't be found by its GUID after a script reload
+            state["buildConfig"] = m_BuildConfig?.Serialize();
+            return state;
+        }
+
+        /// <summary>
+        /// Applies previously created fields so a task can continue it.
+        /// </summary>
+        public override void RestoreRunState(Dictionary<string, object> state)
+        {
+            if (m_BuildConfig == null && state.TryGetValue("buildConfig", out object buildConfig) && buildConfig is Dictionary<string, object> buildConfigData)
+            {
+                m_BuildConfig = new BuildConfig();
+                m_BuildConfig.Deserialize(buildConfigData);
+            }
+
+            base.RestoreRunState(state);
+        }
+
+        protected override object SerializeBuildConfigToApply(BuildConfig config)
+        {
+            return config.Serialize();
+        }
+
+        protected override BuildConfig DeserializeBuildConfigToApply(object data)
+        {
+            BuildConfig config = new BuildConfig();
+            config.Deserialize((Dictionary<string, object>)data);
+            return config;
         }
 
         public override BuildTarget ResultingTarget()

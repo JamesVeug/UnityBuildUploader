@@ -19,6 +19,9 @@ namespace Wireframe.UnitTest
         private bool m_previousSkip;
         private int m_previousBuildNumber;
         private int m_previousUploadNumber;
+        private string m_previousCheckpointFolder;
+        private string m_previousCacheFolder;
+        private bool m_previousSaveReport;
 
         [SetUp]
         public void SetUp()
@@ -27,11 +30,23 @@ namespace Wireframe.UnitTest
             m_previousSkip = settings.SkipBuildAndUploadNumberUpdates;
             m_previousBuildNumber = settings.LastBuildNumber;
             m_previousUploadNumber = settings.TotalUploadTasksStarted;
+
+            // A test task that doesn't finish must not be resumed in the project after a script reload, and its
+            // cache and report stay out of the user's cache folder
+            m_previousCheckpointFolder = UploadTaskCheckpoints.FolderPath;
+            m_previousCacheFolder = Preferences.CacheFolderPath;
+            m_previousSaveReport = Preferences.AutoSaveReportToCacheFolder;
+            UploadTaskCheckpoints.FolderPath = TestSupport.OutputDirectory("Checkpoints");
+            Preferences.CacheFolderPath = TestSupport.OutputDirectory("Cache");
+            Preferences.AutoSaveReportToCacheFolder = false;
         }
 
         [TearDown]
         public void TearDown()
         {
+            UploadTaskCheckpoints.FolderPath = m_previousCheckpointFolder;
+            Preferences.CacheFolderPath = m_previousCacheFolder;
+            Preferences.AutoSaveReportToCacheFolder = m_previousSaveReport;
             BuildUploaderProjectSettings settings = BuildUploaderProjectSettings.Instance;
             settings.SkipBuildAndUploadNumberUpdates = m_previousSkip;
             settings.LastBuildNumber = m_previousBuildNumber;

@@ -39,6 +39,8 @@ Before editing, read the file that matches your task.
    go through the reflection helpers in `BuildProfileWrapper`.
 9. Split non-trivial classes into `.cs`, `.GUI.cs` and `.StringContextModifier.cs`. Call `FormatString` on
    every user string. Add `[Wiki(...)]` to user-facing types and fields.
+10. Consts and static fields go at the very top of a class (each partial file), before nested types, instance
+    fields and members.
 
 ## Map
 

@@ -185,5 +185,25 @@ namespace Wireframe
                 m_headers = headerData.Select(a => new Tuple<string, string>(a.Key, (string)a.Value)).ToList();
             }
         }
+
+        /// <summary>
+        /// Serializes the runtime state of an Upload Task so it can be rerun later (ie: if there is a mid-run recompile
+        /// which clears all tasks and static data)
+        /// </summary>
+        public override Dictionary<string, object> CaptureRunState()
+        {
+            Dictionary<string, object> state = NewRunState();
+            state["sourcePath"] = m_sourcePath;
+            return state;
+        }
+
+        /// <summary>
+        /// Applies previously created fields so a task can continue it.
+        /// </summary>
+        public override void RestoreRunState(Dictionary<string, object> state)
+        {
+            base.RestoreRunState(state);
+            m_sourcePath = state["sourcePath"] as string;
+        }
     }
 }

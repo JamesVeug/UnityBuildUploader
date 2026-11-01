@@ -18,6 +18,7 @@ namespace Wireframe
         }
 
         public override StepType Type => StepType.GetSources;
+        public override bool CanRerunAfterReload => true;
 
         public override async Task<bool> Run(UploadTask uploadTask, UploadTaskReport report, CancellationTokenSource token)
         {
@@ -31,7 +32,7 @@ namespace Wireframe
                     continue;
                 }
 
-                Task<bool> task = GetSources(buildConfigs[j], report, token);
+                Task<bool> task = GetSources(uploadTask, j, buildConfigs[j], report, token);
                 List<UploadConfig.SourceData> activeSources = buildConfigs[j].Sources.Where(a=>a.Enabled).ToList();
                 tasks.Add(new Tuple<List<UploadConfig.SourceData>, Task<bool>>(activeSources, task));
             }
@@ -64,7 +65,7 @@ namespace Wireframe
             return allSuccessful;
         }
 
-        private async Task<bool> GetSources(UploadConfig uploadConfig, UploadTaskReport report,
+        private async Task<bool> GetSources(UploadTask uploadTask, int configIndex, UploadConfig uploadConfig, UploadTaskReport report,
             CancellationTokenSource token)
         {
             UploadTaskReport.StepResult[] results = report.NewReports(Type, uploadConfig.Sources.Count);
@@ -103,6 +104,14 @@ namespace Wireframe
                     return false;
                 }
 
+                if (uploadTask.IsSourceCompleted(configIndex, i))
+                {
+                    // Got before a script reload interrupted this step, and its run state was restored
+                    result.AddLog("Already got this source before scripts reloaded");
+                    result.SetPercentComplete(1f);
+                    continue;
+                }
+
                 try
                 {
                     bool doNotCache = !sourceData.Source.CanCacheContents || sourceData.DoNotCache;
@@ -111,6 +120,9 @@ namespace Wireframe
                     {
                         return false;
                     }
+
+                    // Saved so a later script reload in this step doesn't fetch or build it again
+                    uploadTask.SourceCompleted(configIndex, i);
                 }
                 catch (Exception e)
                 {

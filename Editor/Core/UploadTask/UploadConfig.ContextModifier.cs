@@ -62,9 +62,26 @@ namespace Wireframe
             }
         }
 
-        public void SetContextAndCacheCallbacks(Context context)
+        /// <summary>
+        /// Parents this config's contexts without caching anything. A resumed task restores its cached values
+        /// instead, because caching again would bump the build number.
+        /// </summary>
+        internal void SetContext(Context context)
         {
             m_context.SetParent(context);
+
+            foreach (UploadActionData actionData in m_postActions)
+            {
+                if (actionData.WhenToExecute != UploadActionData.UploadCompleteStatus.Never && actionData.UploadAction != null)
+                {
+                    actionData.UploadAction.Context.SetParent(m_context);
+                }
+            }
+        }
+
+        public void SetContextAndCacheCallbacks(Context context)
+        {
+            SetContext(context);
 
             foreach (SourceData sourceData in m_buildSources)
             {
@@ -95,7 +112,6 @@ namespace Wireframe
             {
                 if (actionData.WhenToExecute != UploadActionData.UploadCompleteStatus.Never && actionData.UploadAction != null)
                 {
-                    actionData.UploadAction.Context.SetParent(m_context);
                     actionData.UploadAction.Context.CacheCallbacks();
                 }
             }

@@ -14,7 +14,7 @@ namespace Wireframe
     internal partial class WindowUploadTab : WindowTab
     {
         internal static readonly string UploadProfilePath =  Application.dataPath + "/../BuildUploader/UploadProfiles";
-        internal static readonly string UploadReportSaveDirectory = Path.Combine(Preferences.CacheFolderPath, "Upload Task Reports");
+        internal static string UploadReportSaveDirectory => Path.Combine(Preferences.CacheFolderPath, "Upload Task Reports");
 
         public override string TabName => "Upload";
         
@@ -694,6 +694,8 @@ namespace Wireframe
             }
 
             uploadTask.SetBuildDescription(description);
+            uploadTask.StartedFromWindow = true;
+            ShowResultWhenComplete(uploadTask);
             UploadTask.AllTasks.Add(uploadTask);
             
             // Start task
@@ -715,9 +717,21 @@ namespace Wireframe
                 await Task.Yield();
                 UploaderWindow.Repaint();
             }
+        }
 
+        /// <summary>
+        /// Tells the user how the upload went. Attached through OnComplete, because a script reload ends this window's
+        /// wait for the task and the resumed task attaches it again.
+        /// </summary>
+        internal static void ShowResultWhenComplete(UploadTask uploadTask)
+        {
+            // Shown on the next update so the dialog doesn't hold up the task finishing
+            uploadTask.OnComplete += report => EditorApplication.delayCall += () => ShowResult(report);
+        }
+
+        private static void ShowResult(UploadTaskReport report)
+        {
             // The report is written to disk by UploadTask itself, so every entry point records a run.
-            UploadTaskReport report = uploadTask.Report;
             string taskReport = report.GetReport();
 
             // Report back to the user

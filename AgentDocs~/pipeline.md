@@ -81,9 +81,49 @@ two action steps. If one with `StopTaskIfFailed` fails, the remaining "no" steps
 - Past runs appear in **Tools → Build Uploader → Open Upload Tasks Window**. There is no completion dialog
   outside the GUI. To dry-run sources and modifiers without touching a service, use `NoUploadDestination`
   ("Nowhere") and turn off cache deletion.
-- The report is saved (if `Preferences.AutoSaveReportToCacheFolder`) only after all steps finish.
-  A domain reload mid-task (e.g. a BuildConfig changing scripting defines) loses the task with no
-  report — open issue #107 (reproduced by `ScriptingDefineBuildTests` in an editor started without `-batchmode`).
+- The report is saved (if `Preferences.AutoSaveReportToCacheFolder`) after all steps finish, or as failed when a
+  task saved before Unity closed is discarded. `GetReport` writes a failed result even when it has no logs.
+
+## Resuming after a script reload (#107)
+
+A domain reload (for example a BuildConfig changing the scripting defines) destroys every running task. So a
+running task saves a checkpoint, and `UploadTaskResumer` carries it on afterwards.
+
+- **Checkpoints** (`UploadTaskCheckpoints`): `Library/BuildUploader/InProgressTasks/<taskGUID>.json`, written
+  synchronously with the package `JSON` class. One is saved before each step, after each step before its
+  `AfterEachStepCompletes` actions, and after each source in GetSources. It holds the configs and actions
+  (`Serialize()`), the report (`UploadTaskReport.Serialize()`, exact unlike the text file), every context's cached
+  values, cached locations, the step and phase, completed sources and each component's `CaptureRunState()`. It is
+  deleted when the task finishes. `File.Replace` is not used: Mono's fails on Windows.
+- **Resuming** (`UploadTaskResumer`, `[InitializeOnLoad]`): lists checkpoints when scripts load, waits on
+  `EditorApplication.update` until the editor is idle and not in Play Mode, then:
+  - saved in this editor session (a `SessionState` ID): resumes it automatically;
+  - saved before Unity closed: no dialog. It waits in `UploadTaskResumer.Pending`, and the Upload Tasks window lists
+    it above the tasks with **Resume** and **Discard** buttons (a line in the Console says so). Discard deletes the
+    checkpoint and the cache folders the task made (never a Local Path destination's) and saves the report as failed;
+  - a checkpoint that no longer loads (a type was deleted) is failed and discarded rather than run partly.
+- **What a resumed task keeps**: the same GUID, report file, cache folders and upload/build numbers.
+  `UploadTask.Prepare` (the number bumps and caching) only runs on the first start. `RunAsync(startStep)` runs
+  the rest; `UploadTask.RunTask` is the running task, for awaiting a resumed one.
+- **Steps** (`AUploadTask_Step.CanRerunAfterReload`):
+  - These run again: Validation, PrepareSources, GetSources (sources that finished and saved run state are
+    skipped), PrepareDestinations and Cleanup.
+  - The others fail the task with the reason, then PostUploadActions and Cleanup run: PreUploadActions,
+    CacheSources, ModifyCacheSources, Upload, PostUploadActions. They have outside effects or change files in place.
+  - A reload during a step's after-step actions skips to the next step.
+  - The same step interrupted `UploadTask.MaxInterruptions` (3) times fails, for packages that keep changing the
+    defines (#108).
+- **Run state**: `CaptureRunState()` / `RestoreRunState()` on sources, destinations and actions save what they
+  worked out while running, which `Serialize()` doesn't. A source returning null (the default) runs again even if
+  it finished. Add run state to a new type that records values later steps read (for example a message ID or a
+  share link). Restore it on a fresh instance; numbers come back as `long`. Never save secrets.
+- **Lost on resume**: anything only in memory and in neither `Serialize()` nor `CaptureRunState()`, such as a token
+  passed to `DiscordMessageChannelAction.SetApp` in code, a test double's mode, or `OnComplete` listeners. The
+  Upload window's result dialog is attached again (`WindowUploadTab.ShowResultWhenComplete`). Discarding a task, or
+  a resumed task failing at an unsafe step, can leave files outside its cache folder: URL and Unity Cloud downloads
+  under the cache root, and Steam VDF files from PrepareDestinations that a new destination instance can't clean up.
+- **Tests**: Core fixtures that run tasks point `UploadTaskCheckpoints.FolderPath` at an output folder, so a test
+  task that doesn't finish is never resumed in the project. `UploadTask.Abandon()` stops a task as a reload would.
 
 ## Preferences that change behaviour
 

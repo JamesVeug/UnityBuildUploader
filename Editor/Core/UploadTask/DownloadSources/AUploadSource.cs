@@ -113,6 +113,37 @@ namespace Wireframe
         public abstract void Deserialize(Dictionary<string, object> data);
 
         /// <summary>
+        /// Serializes the runtime state of an Upload Task so it can be rerun later (ie: if there is a mid-run recompile
+        /// which clears all tasks and static data)
+        /// </summary>
+        public virtual Dictionary<string, object> CaptureRunState()
+        {
+            return null;
+        }
+
+        /// <summary>
+        /// Applies previously created fields so a task can continue it.
+        /// </summary>
+        public virtual void RestoreRunState(Dictionary<string, object> state)
+        {
+            if (state.TryGetValue("taskContentsFolder", out object folder))
+            {
+                m_taskContentsFolder = folder as string;
+            }
+        }
+
+        /// <summary>
+        /// The run state every source has, for CaptureRunState overrides to add to
+        /// </summary>
+        protected Dictionary<string, object> NewRunState()
+        {
+            return new Dictionary<string, object>
+            {
+                ["taskContentsFolder"] = m_taskContentsFolder,
+            };
+        }
+
+        /// <summary>
         /// When starting an Upload Task we cache all fields so they can be shared everywhere
         /// So bump any versions we need before we do so
         /// </summary>

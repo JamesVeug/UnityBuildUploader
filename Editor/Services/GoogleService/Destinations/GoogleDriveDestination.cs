@@ -212,5 +212,27 @@ namespace Wireframe
                 m_zipContents = true;
             }
         }
+
+        /// <summary>
+        /// Serializes the runtime state of an Upload Task so it can be rerun later (ie: if there is a mid-run recompile
+        /// which clears all tasks and static data)
+        /// </summary>
+        public override Dictionary<string, object> CaptureRunState()
+        {
+            Dictionary<string, object> state = base.CaptureRunState();
+            state["recordedFileId"] = m_recordedFileId;
+            state["recordedWebViewLink"] = m_recordedWebViewLink;
+            return state;
+        }
+
+        /// <summary>
+        /// Applies previously created fields so a task can continue it.
+        /// </summary>
+        public override void RestoreRunState(Dictionary<string, object> state)
+        {
+            base.RestoreRunState(state);
+            m_recordedFileId = state["recordedFileId"] as string;
+            m_recordedWebViewLink = state["recordedWebViewLink"] as string;
+        }
     }
 }

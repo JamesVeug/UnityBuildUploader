@@ -181,5 +181,27 @@ namespace Wireframe
                 }
             }
         }
+
+        /// <summary>
+        /// Serializes the runtime state of an Upload Task so it can be rerun later (ie: if there is a mid-run recompile
+        /// which clears all tasks and static data)
+        /// </summary>
+        public override Dictionary<string, object> CaptureRunState()
+        {
+            Dictionary<string, object> state = NewRunState();
+            state["downloadedFilePath"] = downloadedFilePath;
+            state["sourceFilePath"] = sourceFilePath;
+            return state;
+        }
+
+        /// <summary>
+        /// Applies previously created fields so a task can continue it.
+        /// </summary>
+        public override void RestoreRunState(Dictionary<string, object> state)
+        {
+            base.RestoreRunState(state);
+            downloadedFilePath = state["downloadedFilePath"] as string;
+            sourceFilePath = state["sourceFilePath"] as string;
+        }
     }
 }

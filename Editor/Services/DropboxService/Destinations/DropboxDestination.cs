@@ -256,5 +256,27 @@ namespace Wireframe
                 m_createShareLink = false;
             }
         }
+
+        /// <summary>
+        /// Serializes the runtime state of an Upload Task so it can be rerun later (ie: if there is a mid-run recompile
+        /// which clears all tasks and static data)
+        /// </summary>
+        public override Dictionary<string, object> CaptureRunState()
+        {
+            Dictionary<string, object> state = base.CaptureRunState();
+            state["recordedPath"] = m_recordedPath;
+            state["recordedShareLink"] = m_recordedShareLink;
+            return state;
+        }
+
+        /// <summary>
+        /// Applies previously created fields so a task can continue it.
+        /// </summary>
+        public override void RestoreRunState(Dictionary<string, object> state)
+        {
+            base.RestoreRunState(state);
+            m_recordedPath = state["recordedPath"] as string;
+            m_recordedShareLink = state["recordedShareLink"] as string;
+        }
     }
 }

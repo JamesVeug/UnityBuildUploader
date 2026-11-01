@@ -121,6 +121,8 @@ namespace Wireframe
                     }
                 }
 
+                DrawPendingTasks();
+
                 // Column headers
                 using (new EditorGUILayout.HorizontalScope())
                 {
@@ -470,6 +472,60 @@ namespace Wireframe
             {
                 t.Cancel();
             }
+        }
+
+        /// <summary>
+        /// Tasks that were running when Unity closed wait here until the user resumes or discards them (see
+        /// UploadTaskResumer), rather than a dialog asking while Unity opens
+        /// </summary>
+        private void DrawPendingTasks()
+        {
+            if (UploadTaskResumer.Pending.Count == 0)
+            {
+                return;
+            }
+
+            EditorGUILayout.HelpBox("These upload tasks were still running when Unity closed. Resume carries on from the step " +
+                                    "each one stopped at. Discard deletes its cached files.", MessageType.Warning);
+
+            // A copy, because resuming or discarding removes the task from the list
+            foreach (UploadTaskResumer.PendingTask task in UploadTaskResumer.Pending.ToArray())
+            {
+                using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
+                {
+                    GUILayout.Label(task.Name, GUILayout.Width(150));
+                    TimeSpan sinceStarted = DateTime.UtcNow - task.StartTime;
+                    GUILayout.Label($"Stopped during {task.Step}, started {sinceStarted.CalculateShortTime()} ago");
+
+                    // Both run after this repaint, so the task doesn't start and a dialog doesn't open inside OnGUI
+                    if (GUILayout.Button("Resume", GUILayout.Width(80)))
+                    {
+                        EditorApplication.delayCall += () =>
+                        {
+                            UploadTask resumed = UploadTaskResumer.Resume(task);
+                            if (resumed != null)
+                            {
+                                ShowTask(resumed);
+                            }
+                        };
+                    }
+
+                    if (GUILayout.Button("Discard", GUILayout.Width(80)))
+                    {
+                        EditorApplication.delayCall += () =>
+                        {
+                            if (EditorUtility.DisplayDialog("Discard upload task",
+                                    $"Discard '{task.Name}'? It can't be resumed afterwards, and the cache folders it made are deleted.",
+                                    "Discard", "Cancel"))
+                            {
+                                UploadTaskResumer.Discard(task);
+                            }
+                        };
+                    }
+                }
+            }
+
+            EditorGUILayout.Space(4);
         }
 
         public void ShowTask(UploadTask uploadTask)

@@ -1134,8 +1134,21 @@ namespace Wireframe
             List<DeletedTaskResult> deleted = new List<DeletedTaskResult>();
             foreach (string taskId in taskIds)
             {
+                if (UploadTask.IsRunning(taskId))
+                {
+                    throw new ArgumentException($"UploadTask '{taskId}' is still running. Cancel it first.");
+                }
+
                 DeletedTaskResult result = new DeletedTaskResult();
                 result.task = taskId;
+
+                // Or it would be resumed after the next script reload
+                string checkpoint = UploadTaskCheckpoints.FilePath(UploadTaskCheckpoints.FolderPath, taskId);
+                if (File.Exists(checkpoint))
+                {
+                    UploadTaskCheckpoints.Delete(checkpoint);
+                    result.deleted.Add(checkpoint);
+                }
 
                 foreach (KeyValuePair<string, UploadTaskReport> saved in savedReports)
                 {

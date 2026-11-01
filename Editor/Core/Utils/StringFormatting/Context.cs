@@ -120,6 +120,30 @@ namespace Wireframe
             }
         }
 
+        /// <summary>
+        /// Saved with an in-progress task, so a resumed task formats {uploadNumber}, {buildNumber} and the git keys
+        /// the same as before the script reload instead of caching new values
+        /// </summary>
+        internal Dictionary<string, object> GetCachedValues()
+        {
+            Dictionary<string, object> values = new Dictionary<string, object>();
+            foreach (KeyValuePair<string, string> pair in m_cachedValues)
+            {
+                values[pair.Key] = pair.Value;
+            }
+
+            return values;
+        }
+
+        internal void RestoreCachedValues(Dictionary<string, object> values)
+        {
+            m_cachedValues.Clear();
+            foreach (KeyValuePair<string, object> pair in values)
+            {
+                m_cachedValues[pair.Key] = pair.Value as string;
+            }
+        }
+
         public Command AddCommand(string key, Func<string> formatter, string tooltip = "", bool canBeCached = false)
         {
             if (FormatToCommand.TryGetValue(key, out Command staticCommand))

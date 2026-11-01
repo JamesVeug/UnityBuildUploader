@@ -223,5 +223,25 @@ namespace Wireframe
                 m_attachments = new List<SlackAttachment>(); // Default to empty list if not set
             }
         }
+
+        /// <summary>
+        /// Serializes the runtime state of an Upload Task so it can be rerun later (ie: if there is a mid-run recompile
+        /// which clears all tasks and static data)
+        /// </summary>
+        public override Dictionary<string, object> CaptureRunState()
+        {
+            return new Dictionary<string, object>
+            {
+                ["recordedMessageTimeStamp"] = m_recordedMessageTimeStamp,
+            };
+        }
+
+        /// <summary>
+        /// Applies previously created fields so a task can continue it.
+        /// </summary>
+        public override void RestoreRunState(Dictionary<string, object> state)
+        {
+            m_recordedMessageTimeStamp = state["recordedMessageTimeStamp"] as string;
+        }
     }
 }

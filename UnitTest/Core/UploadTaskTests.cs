@@ -25,6 +25,7 @@ namespace Wireframe.UnitTest
         private bool m_previousDeleteCache;
         private bool m_previousSaveReport;
         private bool m_previousDecompress;
+        private string m_previousCheckpointFolder;
 
         [SetUp]
         public void SetUp()
@@ -42,11 +43,16 @@ namespace Wireframe.UnitTest
             Preferences.DeleteCacheAfterUpload = true;
             Preferences.AutoSaveReportToCacheFolder = false;
             Preferences.AutoDecompressZippedSourceFiles = true;
+
+            // A test task that doesn't finish must not be resumed in the project after a script reload
+            m_previousCheckpointFolder = UploadTaskCheckpoints.FolderPath;
+            UploadTaskCheckpoints.FolderPath = TestSupport.OutputDirectory("Checkpoints");
         }
 
         [TearDown]
         public void TearDown()
         {
+            UploadTaskCheckpoints.FolderPath = m_previousCheckpointFolder;
             Preferences.CacheFolderPath = m_previousCacheFolder;
             Preferences.UseLocalDestinationIfAvailable = m_previousUseLocalDestination;
             Preferences.DeleteCacheAfterUpload = m_previousDeleteCache;

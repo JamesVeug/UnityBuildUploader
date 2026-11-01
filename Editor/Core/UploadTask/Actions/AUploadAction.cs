@@ -90,5 +90,21 @@ namespace Wireframe
         /// Load your data from a Dictionary or List to restore it between sessions
         /// </summary>
         public abstract void Deserialize(Dictionary<string, object> data);
+
+        /// <summary>
+        /// Serializes the runtime state of an Upload Task so it can be rerun later (ie: if there is a mid-run recompile
+        /// which clears all tasks and static data)
+        /// </summary>
+        public virtual Dictionary<string, object> CaptureRunState()
+        {
+            return null;
+        }
+
+        /// <summary>
+        /// Applies previously created fields so a task can continue it.
+        /// </summary>
+        public virtual void RestoreRunState(Dictionary<string, object> state)
+        {
+        }
     }
 }

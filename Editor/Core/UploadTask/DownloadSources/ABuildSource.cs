@@ -142,8 +142,12 @@ namespace Wireframe
                 }
 
                 // Cache current editor settings to restore later
-                BuildUtils.ChangeRunningBuilds(true);
-                m_appliedSettings = true;
+                // Already counted when this runs again after a script reload restored m_appliedSettings
+                if (!m_appliedSettings)
+                {
+                    BuildUtils.ChangeRunningBuilds(true);
+                    m_appliedSettings = true;
+                }
 
                 // Cache stuff to restore later
                 PreApplyBuildConfig();
@@ -213,8 +217,12 @@ namespace Wireframe
                 }
                 else
                 {
-                    EditorApplication.delayCall += () =>
+                    // On the next update rather than delayCall, which waits for a repaint that doesn't come while
+                    // Unity is in the background, for example after a script reload resumed this task
+                    EditorApplication.CallbackFunction build = null;
+                    build = () =>
                     {
+                        EditorApplication.update -= build;
                         try
                         {
                             tcs.SetResult(MakeBuildWithAddressables(options, stepResult));
@@ -224,6 +232,7 @@ namespace Wireframe
                             tcs.SetException(e);
                         }
                     };
+                    EditorApplication.update += build;
                 }
 
                 // Build the player
@@ -309,7 +318,7 @@ namespace Wireframe
 
         protected virtual void PreApplyBuildConfig()
         {
-            
+
         }
 
         protected string GetBuiltDirectory(UploadTaskReport.StepResult stepResult = null)
@@ -546,6 +555,67 @@ namespace Wireframe
             // Kept when Addressables is not installed, so the setting survives opening the project without it
             m_BuildAddressables = data.TryGetValue("BuildAddressables", out var buildAddressablesObj) && buildAddressablesObj is bool buildAddressables && buildAddressables;
             m_CleanAddressables = data.TryGetValue("CleanAddressables", out var cleanAddressablesObj) && cleanAddressablesObj is bool cleanAddressables && cleanAddressables;
+        }
+
+        /// <summary>
+        /// Serializes the runtime state of an Upload Task so it can be rerun later (ie: if there is a mid-run recompile
+        /// which clears all tasks and static data)
+        /// </summary>
+        public override Dictionary<string, object> CaptureRunState()
+        {
+            Dictionary<string, object> state = NewRunState();
+            state["filePath"] = m_filePath;
+            state["appliedSettings"] = m_appliedSettings;
+            state["buildConfigToApply"] = m_buildConfigToApply != null ? SerializeBuildConfigToApply(m_buildConfigToApply) : null;
+            if (m_buildMetaData != null)
+            {
+                state["buildNumber"] = m_buildMetaData.BuildNumber;
+                state["uploadNumber"] = m_buildMetaData.UploadNumber;
+            }
+            return state;
+        }
+
+        /// <summary>
+        /// Applies previously created fields so a task can continue it.
+        /// </summary>
+        public override void RestoreRunState(Dictionary<string, object> state)
+        {
+            base.RestoreRunState(state);
+            m_filePath = state["filePath"] as string ?? "";
+
+            // Saved because PrepareSources, which works it out, doesn't run again when GetSources resumes
+            object buildConfigToApply = state["buildConfigToApply"];
+            m_buildConfigToApply = buildConfigToApply != null ? DeserializeBuildConfigToApply(buildConfigToApply) : default;
+
+            if (state.TryGetValue("buildNumber", out object buildNumber))
+            {
+                m_buildMetaData = new BuildMetaData
+                {
+                    BuildNumber = Convert.ToInt32(buildNumber),
+                    UploadNumber = Convert.ToInt32(state["uploadNumber"]),
+                };
+            }
+
+            // The running-builds count is reset by the reload, so count this build again for CleanUp to balance
+            if ((bool)state["appliedSettings"] && !m_appliedSettings)
+            {
+                m_appliedSettings = true;
+                BuildUtils.ChangeRunningBuilds(true);
+            }
+        }
+
+        /// <summary>
+        /// Saves the config being applied for a resumed task. The default only notes that there was one, and
+        /// DeserializeBuildConfigToApply works it out again.
+        /// </summary>
+        protected virtual object SerializeBuildConfigToApply(T config)
+        {
+            return true;
+        }
+
+        protected virtual T DeserializeBuildConfigToApply(object data)
+        {
+            return m_BuildConfig != null ? GetBuildConfigToApply() : default;
         }
 
         public override async Task CleanUp(int configIndex, UploadTaskReport.StepResult stepResult)

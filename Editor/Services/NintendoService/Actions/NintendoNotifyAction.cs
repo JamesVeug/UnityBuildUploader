@@ -171,5 +171,25 @@ namespace Wireframe
                 m_responseIdFormat.Key = idFormatString;
             }
         }
+
+        /// <summary>
+        /// Serializes the runtime state of an Upload Task so it can be rerun later (ie: if there is a mid-run recompile
+        /// which clears all tasks and static data)
+        /// </summary>
+        public override Dictionary<string, object> CaptureRunState()
+        {
+            return new Dictionary<string, object>
+            {
+                ["recordedResponseId"] = m_recordedResponseId,
+            };
+        }
+
+        /// <summary>
+        /// Applies previously created fields so a task can continue it.
+        /// </summary>
+        public override void RestoreRunState(Dictionary<string, object> state)
+        {
+            m_recordedResponseId = state["recordedResponseId"] as string;
+        }
     }
 }
