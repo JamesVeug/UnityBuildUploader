@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using UnityEngine;
 
 namespace Wireframe
@@ -45,12 +46,24 @@ namespace Wireframe
                 m_report = report;
             }
             
+            /// <summary>
+            /// A copy of the logs, safe to read while other threads add to them
+            /// </summary>
+            internal List<Log> CopyLogs()
+            {
+                lock (m_lock)
+                {
+                    return new List<Log>(Logs);
+                }
+            }
+
             public void AddLog(string log)
             {
                 lock (m_lock)
                 {
                     Logs.Add(new Log(Log.LogType.Info, log));
                 }
+                m_report.Changed();
 
                 if (m_report.m_invokeDebugLogs)
                 {
@@ -65,6 +78,7 @@ namespace Wireframe
                 {
                     Logs.Add(new Log(Log.LogType.Warning, warning));
                 }
+                m_report.Changed();
 
                 if (m_report.m_invokeDebugLogs)
                 {
@@ -79,6 +93,7 @@ namespace Wireframe
                 {
                     Logs.Add(new Log(Log.LogType.Error, error));
                 }
+                m_report.Changed();
 
                 if (m_report.m_invokeDebugLogs)
                 {
@@ -93,6 +108,7 @@ namespace Wireframe
                 {
                     Logs.Add(new Log(Log.LogType.Exception, e.Message + "\n" + e.StackTrace));
                 }
+                m_report.Changed();
 
                 if (m_report.m_invokeDebugLogs)
                 {
@@ -106,6 +122,7 @@ namespace Wireframe
                 {
                     Logs.Add(new Log(Log.LogType.Exception, e.Message.HideText(hideText) + "\n" + e.StackTrace.HideText(hideText)));
                 }
+                m_report.Changed();
 
                 if (m_report.m_invokeDebugLogs)
                 {
@@ -122,6 +139,7 @@ namespace Wireframe
                     m_report.Successful = false;
                     // Note: We add a log entry in UploadTaskReport.GetReport()
                 }
+                m_report.Changed();
                 
                 if (m_report.m_invokeDebugLogs)
                 {
@@ -158,8 +176,25 @@ namespace Wireframe
         public string GUID { get; private set; }
         public string Name { get; private set; }
 
+        /// <summary>
+        /// The task is still running, or it stopped without finishing (for example Unity closed). The report file is
+        /// written while a task runs, so the Upload Tasks window shows it as it goes.
+        /// </summary>
+        public bool InProgress { get; private set; }
+
+        /// <summary>
+        /// The step the task was on when the report was last written
+        /// </summary>
+        public AUploadTask_Step.StepType CurrentStep { get; internal set; }
+
+        /// <summary>
+        /// Goes up whenever something is logged or fails, so the report file is only written again when it changed
+        /// </summary>
+        internal int ChangeCount => m_changeCount;
+
         private readonly bool m_invokeDebugLogs;
         private AUploadTask_Step.StepProcess m_process;
+        private int m_changeCount;
 
         public UploadTaskReport(string guid, string name, bool invokeDebugLogs = true)
         {
@@ -217,9 +252,20 @@ namespace Wireframe
             m_process = process;
         }
 
+        internal void Start()
+        {
+            InProgress = true;
+        }
+
         public void Complete()
         {
             EndTime = DateTime.UtcNow;
+            InProgress = false;
+        }
+
+        private void Changed()
+        {
+            Interlocked.Increment(ref m_changeCount);
         }
 
         public void SetCancelled()
@@ -234,8 +280,16 @@ namespace Wireframe
             sb.AppendLine("GUID: " + GUID);
             sb.AppendLine("Name: " + Name);
             sb.AppendLine("Start Time: " + StartTime + " Local: " + StartTime.ToLocalTime()); // UTC
-            sb.AppendLine("End Time: " + EndTime + " Local: " + EndTime.ToLocalTime()); // UTC
-            sb.AppendLine("Duration: " + Duration);
+            sb.AppendLine("In Progress: " + InProgress);
+            if (InProgress)
+            {
+                sb.AppendLine("Current Step: " + CurrentStep);
+            }
+            else
+            {
+                sb.AppendLine("End Time: " + EndTime + " Local: " + EndTime.ToLocalTime()); // UTC
+                sb.AppendLine("Duration: " + Duration);
+            }
             sb.AppendLine("Successful: " + Successful);
             sb.AppendLine("Cancelled: " + Cancelled);
             
@@ -285,7 +339,8 @@ namespace Wireframe
                     for (var i = 0; i < stepResult.Count; i++)
                     {
                         StepResult result = stepResult[i];
-                        if (result.Logs.Count == 0 && string.IsNullOrEmpty(result.FailReason))
+                        List<StepResult.Log> logs = result.CopyLogs();
+                        if (logs.Count == 0 && string.IsNullOrEmpty(result.FailReason))
                         {
                             // A failure is written even without logs, or its reason would be lost from the file
                             continue;
@@ -297,7 +352,7 @@ namespace Wireframe
                             sb.AppendLine($"[FAILED] {result.FailReason}");
                         }
 
-                        foreach (StepResult.Log log in result.Logs)
+                        foreach (StepResult.Log log in logs)
                         {
                             sb.AppendLine($"[{log.Type}] {log.Message}");
                         }
@@ -452,6 +507,21 @@ namespace Wireframe
                     if (bool.TryParse(line.Substring("Cancelled:".Length).Trim(), out bool successful))
                     {
                         report.Cancelled = successful;
+                    }
+                }
+                else if (line.StartsWith("In Progress", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Reports written before tasks saved them as they ran don't have this, and are complete
+                    if (bool.TryParse(line.Substring("In Progress:".Length).Trim(), out bool inProgress))
+                    {
+                        report.InProgress = inProgress;
+                    }
+                }
+                else if (line.StartsWith("Current Step", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (Enum.TryParse(line.Substring("Current Step:".Length).Trim(), out AUploadTask_Step.StepType currentStep))
+                    {
+                        report.CurrentStep = currentStep;
                     }
                 }
             }

@@ -70,13 +70,16 @@ namespace Wireframe
         }
 
         /// <summary>
-        /// For tests: stops the task where it is without finishing it, as a script reload would
+        /// For tests: stops the task where it is without finishing it, as a script reload would.
+        /// A report write already in progress still finishes; wait for ReportWrite before writing the same file.
         /// </summary>
         internal void Abandon()
         {
             m_debugForceStopTask = true;
             s_liveTasks.Remove(m_guid);
         }
+
+        internal Task ReportWrite => m_reportWrite;
 
         private void Checkpoint(AUploadTask_Step.StepType step, CheckpointPhase phase)
         {
@@ -108,6 +111,8 @@ namespace Wireframe
                 // A warning, not an error: the task carries on, it just can't resume after a script reload
                 Debug.LogWarning($"[BuildUploader] Could not save upload task '{m_uploadName}' to resume it after a script reload: {e.Message}");
             }
+
+            WriteReportFile();
         }
 
         private Dictionary<string, object> CreateCheckpoint()

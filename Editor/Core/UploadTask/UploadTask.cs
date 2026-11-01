@@ -18,6 +18,7 @@ namespace Wireframe
     public partial class UploadTask
     {
         internal static List<UploadTask> AllTasks = new List<UploadTask>();
+        private static readonly TimeSpan ReportWriteInterval = TimeSpan.FromSeconds(5);
         
         public event Action<UploadTaskReport> OnComplete = delegate { };
         
@@ -55,6 +56,11 @@ namespace Wireframe
         private string m_guid;
         private AUploadTask_Step[] m_currentSteps;
         private CancellationTokenSource m_cancellationToken;
+
+        private Task m_reportWrite = Task.CompletedTask;
+        private bool m_reportWritePending;
+        private int m_reportChangesWritten = -1;
+        private DateTime m_reportWrittenAt;
 
         public UploadTask(UploadProfile uploadProfile) : 
             this(uploadProfile.ProfileName, uploadProfile.UploadConfigs, uploadProfile.Actions)
@@ -145,6 +151,7 @@ namespace Wireframe
         private void Prepare(bool invokeDebugLogs)
         {
             m_report = new UploadTaskReport(m_guid, UploadName, invokeDebugLogs);
+            m_report.Start();
             m_cachedLocations = new string[m_uploadConfigs.Count];
             m_cachedLocationNeedsCleaning = new bool[m_uploadConfigs.Count];
             IsSuccessful = false;
@@ -214,6 +221,7 @@ namespace Wireframe
 
                 // Set up Context to display task-specific strings
                 SetupContext(m_report);
+                WriteReportFile();
 
                 // Run the Build Uploader
                 await Execute(steps, startStep);
@@ -229,7 +237,12 @@ namespace Wireframe
 
                 ProgressUtils.Remove(m_progressId);
                 m_report.Complete();
-                await SaveReport();
+                WriteReportFile();
+                await m_reportWrite;
+                if (Preferences.AutoSaveReportToCacheFolder)
+                {
+                    Debug.Log($"[BuildUploader] Wrote upload task report to {ReportPath(m_uploadConfigs.Select(x => x.GUID), m_report.StartTime)}");
+                }
                 UploadTaskCheckpoints.Delete(UploadTaskCheckpoints.FilePath(m_checkpointFolder, m_guid));
             }
             finally
@@ -244,13 +257,49 @@ namespace Wireframe
         }
 
         /// <summary>
-        /// Write the report next to the cached builds so it outlives the editor session. Every entry point -
-        /// the Upload window, the CLI, batch mode - goes through StartAsync, so saving here is what makes a
-        /// run show up in the Upload Tasks window no matter how it was started.
+        /// Writes the report next to the cached builds so it outlives the editor session. Every entry point -
+        /// the Upload window, the CLI, batch mode - goes through RunAsync, so saving here is what makes a run
+        /// show up in the Upload Tasks window no matter how it was started. The file is written when the task
+        /// starts and kept up to date while it runs; a request while a write is in progress writes again after it.
         /// </summary>
-        private Task SaveReport()
+        private void WriteReportFile()
         {
-            return SaveReport(m_report, m_uploadConfigs.Select(x => x.GUID).ToList());
+            if (!Preferences.AutoSaveReportToCacheFolder || m_debugForceStopTask)
+            {
+                return;
+            }
+
+            if (!m_reportWrite.IsCompleted)
+            {
+                m_reportWritePending = true;
+                return;
+            }
+
+            m_reportWrite = WriteReportFileAsync();
+        }
+
+        private async Task WriteReportFileAsync()
+        {
+            do
+            {
+                m_reportWritePending = false;
+                m_reportChangesWritten = m_report.ChangeCount;
+                m_reportWrittenAt = DateTime.UtcNow;
+                string reportPath = ReportPath(m_uploadConfigs.Select(x => x.GUID), m_report.StartTime);
+                await WriteReportText(reportPath, m_report.GetReport());
+            }
+            while (m_reportWritePending && !m_debugForceStopTask);
+        }
+
+        /// <summary>
+        /// Called while a step runs, so a long step's logs reach the file every few seconds
+        /// </summary>
+        private void WriteReportFileIfChanged()
+        {
+            if (m_report.ChangeCount != m_reportChangesWritten && DateTime.UtcNow - m_reportWrittenAt >= ReportWriteInterval)
+            {
+                WriteReportFile();
+            }
         }
 
         internal static async Task SaveReport(UploadTaskReport report, List<string> configGUIDs)
@@ -260,21 +309,29 @@ namespace Wireframe
                 return;
             }
 
-            string reportPath = ReportPath(configGUIDs, report.StartTime);
+            await WriteReportText(ReportPath(configGUIDs, report.StartTime), report.GetReport());
+        }
+
+        /// <summary>
+        /// Writes beside the report and then moves it into place, so the Upload Tasks window never reads half a file
+        /// </summary>
+        private static async Task WriteReportText(string reportPath, string text)
+        {
+            string temporaryPath = reportPath + ".tmp";
             try
             {
-                if (!Directory.Exists(WindowUploadTab.UploadReportSaveDirectory))
+                // Made every time: Delete All Complete Reports deletes the folder
+                Directory.CreateDirectory(Path.GetDirectoryName(reportPath));
+                await IOUtils.WriteAllTextAsync(temporaryPath, text);
+                if (File.Exists(reportPath))
                 {
-                    Directory.CreateDirectory(WindowUploadTab.UploadReportSaveDirectory);
+                    File.Delete(reportPath);
                 }
-
-                Debug.Log($"[BuildUploader] Writing upload task report to {reportPath}");
-                await IOUtils.WriteAllTextAsync(reportPath, report.GetReport());
+                File.Move(temporaryPath, reportPath);
             }
             catch (Exception e)
             {
-                Debug.LogError($"[BuildUploader] Failed to write report to {reportPath}");
-                Debug.LogException(e);
+                Debug.LogWarning($"[BuildUploader] Could not write the upload task report to {reportPath}: {e.Message}");
             }
         }
 
@@ -337,6 +394,7 @@ namespace Wireframe
                 }
 
                 // Saved before every step so a script reload can resume the task from here
+                m_report.CurrentStep = step.Type;
                 Checkpoint(step.Type, CheckpointPhase.Running);
 
                 // Perform the Step (GetSources, CacheSources, etc.)
@@ -358,6 +416,7 @@ namespace Wireframe
                 {
                     float progress = m_report.GetProgress(step.Type, AUploadTask_Step.StepProcess.Intra);
                     SetProgress(i, progress, CurrentStepType.ToString());
+                    WriteReportFileIfChanged();
                     await Task.Yield();
                     if (m_debugForceStopTask)
                     {
@@ -618,8 +677,11 @@ namespace Wireframe
             m_uploadName = report.Name;
             IsSuccessful = report.Successful;
             IsCancelled = report.Cancelled;
-            IsComplete = true;
-            PercentComplete = 1f;
+
+            // A report saved while its task ran shows where the task got to
+            IsComplete = !report.InProgress;
+            CurrentStepType = report.CurrentStep;
+            PercentComplete = report.InProgress ? (float)report.CurrentStep / Enum.GetValues(typeof(AUploadTask_Step.StepType)).Length : 1f;
         }
     }
 }

@@ -77,6 +77,8 @@ namespace Wireframe
                 ["startTicks"] = StartTime.Ticks,
                 ["successful"] = Successful,
                 ["cancelled"] = Cancelled,
+                ["inProgress"] = InProgress,
+                ["currentStep"] = CurrentStep.ToString(),
                 ["invokeDebugLogs"] = m_invokeDebugLogs,
                 ["results"] = results,
             };
@@ -88,6 +90,12 @@ namespace Wireframe
             report.StartTime = new DateTime(Convert.ToInt64(data["startTicks"]), DateTimeKind.Utc);
             report.Successful = (bool)data["successful"];
             report.Cancelled = (bool)data["cancelled"];
+            report.InProgress = data.TryGetValue("inProgress", out object inProgress) && inProgress is bool running && running;
+            if (data.TryGetValue("currentStep", out object currentStep) && Enum.TryParse(currentStep as string, out AUploadTask_Step.StepType currentStepType))
+            {
+                report.CurrentStep = currentStepType;
+            }
+
             foreach (Dictionary<string, object> result in (List<object>)data["results"])
             {
                 if (!Enum.TryParse((string)result["step"], out AUploadTask_Step.StepType step) ||

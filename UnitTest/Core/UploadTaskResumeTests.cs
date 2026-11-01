@@ -267,6 +267,7 @@ namespace Wireframe.UnitTest
             var task = new UploadTask("Core discard", new List<UploadConfig> { local, generated });
             yield return StartUntil(task, gate);
             Dictionary<string, object> checkpoint = Abandon(task);
+            yield return TestSupport.Await(task.ReportWrite, Timeout); // A real reload ends it with the old scripts
             checkpoint["sessionId"] = "closed session";
             UploadTaskCheckpoints.Write(UploadTaskCheckpoints.FolderPath, task.GUID, checkpoint);
 
@@ -281,10 +282,12 @@ namespace Wireframe.UnitTest
             Assert.IsFalse(discarded.IsSuccessful);
             AssertFailedAt(discarded, StepType.GetSources, "Not resumed after Unity closed");
 
+            // The report was written while the task ran, so wait for it to be written again as failed
             string report = UploadTask.ReportPath(new List<string> { local.GUID, generated.GUID }, task.Report.StartTime);
             yield return TestSupport.WaitUntil(() => ReadOrEmpty(report).Contains("Not resumed after Unity closed"), Timeout,
                 "The discarded task's report was not saved as failed");
             StringAssert.Contains("Successful: False", ReadOrEmpty(report));
+            StringAssert.Contains("In Progress: False", ReadOrEmpty(report));
         }
 
         [Test]

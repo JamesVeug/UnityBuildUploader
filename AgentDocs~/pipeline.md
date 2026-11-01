@@ -81,8 +81,12 @@ two action steps. If one with `StopTaskIfFailed` fails, the remaining "no" steps
 - Past runs appear in **Tools → Build Uploader → Open Upload Tasks Window**. There is no completion dialog
   outside the GUI. To dry-run sources and modifiers without touching a service, use `NoUploadDestination`
   ("Nowhere") and turn off cache deletion.
-- The report is saved (if `Preferences.AutoSaveReportToCacheFolder`) after all steps finish, or as failed when a
-  task saved before Unity closed is discarded. `GetReport` writes a failed result even when it has no logs.
+- With `Preferences.AutoSaveReportToCacheFolder` on, the report file is written when the task starts and kept up
+  to date: at every checkpoint (below), every 5 s while a step logs, and at the end. One write runs at a time,
+  through `<file>.tmp` then a move. The header has `In Progress: True` and `Current Step` until it finishes, then
+  `End Time` and `Duration`. Files without `In Progress` (older versions) load as complete. The Upload Tasks window
+  shows a running task from memory over its file, and a file left in progress as **Will resume** (a checkpoint
+  exists) or **Interrupted**. `GetReport` writes a failed result even when it has no logs.
 
 ## Resuming after a script reload (#107)
 
@@ -133,7 +137,7 @@ running task saves a checkpoint, and `UploadTaskResumer` carries it on afterward
 | `DeleteCacheAfterUpload` (default on) | Cleanup deletes task cache folders it created |
 | `CacheFolderPath` | Cache root; default `Application.persistentDataPath/BuildUploader/CachedBuilds` |
 | `AutoDecompressZippedSourceFiles` (default on) | A `.zip` file source is extracted into the cache |
-| `AutoSaveReportToCacheFolder` (default off) | Writes the report for the Upload Tasks window |
+| `AutoSaveReportToCacheFolder` (default off) | Writes the report for the Upload Tasks window, from the task's start and as it runs |
 
 Per-source `DuplicateFileHandling` defaults to `Error`: two sources writing the same file fail CacheSources.
 Every task start bumps `TotalUploadTasksStarted` and every build bumps `LastBuildNumber` in

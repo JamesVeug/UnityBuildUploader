@@ -527,8 +527,9 @@ namespace Wireframe
                 result.name = report.Name;
                 result.file = saved.Key;
                 result.startTime = report.StartTime.ToString("u");
-                result.duration = report.Duration.ToString();
-                result.successful = report.Successful;
+                result.inProgress = report.InProgress;
+                result.duration = report.InProgress ? "" : report.Duration.ToString();
+                result.successful = report.Successful && !report.InProgress;
                 found.Add(result);
             }
 
@@ -622,7 +623,12 @@ namespace Wireframe
             DateTime newestReport = DateTime.MinValue;
             foreach (KeyValuePair<string, UploadTaskReport> saved in LoadSavedReports())
             {
-                if (saved.Value.Successful)
+                if (saved.Value.InProgress)
+                {
+                    // Written while its task runs, or left by a task that was interrupted
+                    result.reportsInProgress++;
+                }
+                else if (saved.Value.Successful)
                 {
                     result.reportsSuccessful++;
                 }
@@ -642,7 +648,7 @@ namespace Wireframe
                 }
             }
 
-            if (result.reportsSuccessful + result.reportsFailed > 0)
+            if (result.reportsSuccessful + result.reportsFailed + result.reportsInProgress > 0)
             {
                 result.oldestReport = oldestReport.ToString("u");
                 result.newestReport = newestReport.ToString("u");
@@ -1275,6 +1281,7 @@ namespace Wireframe
             public int reports;
             public int reportsSuccessful;
             public int reportsFailed;
+            public int reportsInProgress;
             public string oldestReport;
             public string newestReport;
         }
@@ -1287,6 +1294,7 @@ namespace Wireframe
             public string startTime;
             public string duration;
             public bool successful;
+            public bool inProgress;
         }
 
         private class VerifiedProfileResult

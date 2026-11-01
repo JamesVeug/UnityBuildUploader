@@ -10,6 +10,9 @@ namespace Wireframe
 {
     internal class BuildUploaderTaskWindow : EditorWindow
     {
+        internal const string WillResumeState = "Will resume";
+        internal const string InterruptedState = "Interrupted";
+
         private class UploadTaskFileData
         {
             public UploadTask Task;
@@ -44,10 +47,19 @@ namespace Wireframe
         private Dictionary<AUploadTask_Step.StepType, (bool, Vector2)> m_OpenTaskSteps;
         private bool m_FollowLogs = true;
         private bool m_AutoFollowingLogs = true;
+        private int m_runningTasks;
 
         public void Update()
         {
-            bool anyRunning = UploadTask.AllTasks.Any(t => !t.IsComplete);
+            // Read the report files again when a task finishes, so none still shows as running
+            int running = UploadTask.AllTasks.Count(t => !t.IsComplete);
+            if (running < m_runningTasks && m_loadedTasks != null)
+            {
+                ReadAllTaskReports(true);
+            }
+            m_runningTasks = running;
+
+            bool anyRunning = running > 0;
             if (anyRunning || m_FollowLogs)
             {
                 // Force repaint to update progress bars
@@ -136,10 +148,13 @@ namespace Wireframe
 
                 EditorGUILayout.Space(2);
 
-                var tasks = m_loadedTasks.Concat(UploadTask.AllTasks.Select(a=>new UploadTaskFileData() { Task = a })
-                    .Where(a=>a.Task.Report != null && !m_loadedTasks.Any(b=>b.Task.GUID == a.Task.GUID))
-                    .OrderBy(a=>a.Task.Report.StartTime)
-                    ).ToArray();
+                // A running task wins over its report file, which is written while it runs. Tasks waiting to be resumed
+                // are listed above instead.
+                List<UploadTask> liveTasks = UploadTask.AllTasks.Where(a => a.Report != null).ToList();
+                var tasks = m_loadedTasks.Where(a => !liveTasks.Any(b => b.GUID == a.Task.GUID) &&
+                                                     !UploadTaskResumer.Pending.Any(b => b.GUID == a.Task.GUID))
+                    .Concat(liveTasks.OrderBy(a => a.Report.StartTime).Select(a => new UploadTaskFileData() { Task = a }))
+                    .ToArray();
                 if (tasks.Length == 0)
                 {
                     EditorGUILayout.HelpBox("No Task started this session. Use the Upload tab to begin uploading!", MessageType.Info);
@@ -156,48 +171,65 @@ namespace Wireframe
             }
         }
 
-        private void DrawTask(UploadTask t, UploadTaskFileData data)
+        /// <summary>
+        /// The State column's text and colour, decided together. A task only known from a report saved while it ran
+        /// isn't running: it will resume if it has a checkpoint (see UploadTaskResumer), and was interrupted if it doesn't.
+        /// </summary>
+        internal static string GetState(UploadTask t, bool live, bool hasCheckpoint, out Color color)
         {
-            string stateText;
-            Color stateColor;
-            bool canBeCancelled = !t.IsComplete && !t.IsCancelled;
-
             if (t.IsComplete)
             {
                 if (t.IsCancelled)
                 {
-                    stateText = "Cancelled";
-                    stateColor = new Color(1f, 1f, 0); // yellow
+                    color = new Color(1f, 1f, 0); // yellow
+                    return "Cancelled";
                 }
-                else if (t.IsSuccessful)
+
+                if (t.IsSuccessful)
                 {
-                    stateText = "Success";
-                    stateColor = new Color(0.22f, 0.7f, 0.3f); // green-ish
+                    color = new Color(0.22f, 0.7f, 0.3f); // green-ish
+                    return "Success";
                 }
-                else
-                {
-                    stateText = "Failed";
-                    stateColor = new Color(0.8f, 0.25f, 0.25f); // red-ish
-                }
+
+                color = new Color(0.8f, 0.25f, 0.25f); // red-ish
+                return "Failed";
             }
-            else
+
+            if (!live)
             {
-                if (t.IsCancelled)
+                if (hasCheckpoint)
                 {
-                    stateText = "Cancelling";
-                    stateColor = new Color(0.7f, 0.7f, 0); // yellow-ish
+                    color = new Color(0.95f, 0.65f, 0.1f); // amber
+                    return WillResumeState;
                 }
-                else if (t.PercentComplete > 0f || t.CurrentSteps != null)
-                {
-                    stateText = "In Progress";
-                    stateColor = new Color(0.95f, 0.65f, 0.1f); // amber
-                }
-                else
-                {
-                    stateText = "Idle";
-                    stateColor = new Color(0.6f, 0.6f, 0.6f); // grey
-                }
+
+                color = new Color(0.8f, 0.25f, 0.25f); // red-ish
+                return InterruptedState;
             }
+
+            if (t.IsCancelled)
+            {
+                color = new Color(0.7f, 0.7f, 0); // yellow-ish
+                return "Cancelling";
+            }
+
+            if (t.PercentComplete > 0f || t.CurrentSteps != null)
+            {
+                color = new Color(0.95f, 0.65f, 0.1f); // amber
+                return "In Progress";
+            }
+
+            color = new Color(0.6f, 0.6f, 0.6f); // grey
+            return "Idle";
+        }
+
+        private void DrawTask(UploadTask t, UploadTaskFileData data)
+        {
+            // Tasks loaded from a report file aren't running in this editor, so they can't be cancelled
+            bool live = string.IsNullOrEmpty(data.FullPath);
+            bool hasCheckpoint = !live && !t.IsComplete && File.Exists(UploadTaskCheckpoints.FilePath(UploadTaskCheckpoints.FolderPath, t.GUID));
+            string stateText = GetState(t, live, hasCheckpoint, out Color stateColor);
+            bool canBeCancelled = live && !t.IsComplete && !t.IsCancelled;
 
             // Current step label
             string stepLabel = t.IsComplete ? "Done" : t.CurrentStepType.ToString();
@@ -273,7 +305,7 @@ namespace Wireframe
                     if (CustomSettingsIcon.OnGUI())
                     {
                         GenericMenu menu = new GenericMenu();
-                        if (!t.IsComplete && !t.IsCancelled)
+                        if (canBeCancelled)
                         {
                             menu.AddItem(new GUIContent("Cancel Task"), false, ()=>
                             {
@@ -563,7 +595,18 @@ namespace Wireframe
             string[] filePaths = Directory.GetFiles(WindowUploadTab.UploadReportSaveDirectory, "*.txt", SearchOption.AllDirectories);
             foreach (string filePath in filePaths)
             {
-                UploadTaskReport report = UploadTaskReport.FromFilePath(filePath);
+                UploadTaskReport report;
+                try
+                {
+                    report = UploadTaskReport.FromFilePath(filePath);
+                }
+                catch (Exception e)
+                {
+                    // A running task may be writing it
+                    Debug.LogWarning($"[BuildUploader] Could not read upload task report {filePath}: {e.Message}");
+                    continue;
+                }
+
                 if (report == null)
                 {
                     continue;
