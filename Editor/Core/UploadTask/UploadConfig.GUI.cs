@@ -11,6 +11,7 @@ namespace Wireframe
     public partial class UploadConfig
     {
         internal const float StopTaskIfFailedToggleWidth = 150;
+        private const float LogIndent = 15;
         
         internal bool Collapsed { get; set; } = true;
         
@@ -260,12 +261,16 @@ namespace Wireframe
         {
             Color color = GUI.color;
             GUI.color = Color.yellow;
-            using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
+            using (new EditorGUILayout.HorizontalScope())
             {
-                GUIContent iconContent = new GUIContent(Utils.WarningIcon, "Warning: " + content.tooltip);
-                GUILayout.Label(iconContent, EditorStyles.label, GUILayout.Width(15), GUILayout.Height(15));
-                GUILayout.Label(content);
-                DrawSettingsLinkButton(content, color);
+                GUILayout.Space(LogIndent);
+                using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
+                {
+                    GUIContent iconContent = new GUIContent(Utils.WarningIcon, "Warning: " + content.tooltip);
+                    GUILayout.Label(iconContent, EditorStyles.label, GUILayout.Width(15), GUILayout.Height(15));
+                    GUILayout.Label(content);
+                    DrawSettingsLinkButton(content, color);
+                }
             }
             GUI.color = color;
         }
@@ -274,12 +279,16 @@ namespace Wireframe
         {
             Color color = GUI.color;
             GUI.color = Color.red;
-            using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
+            using (new EditorGUILayout.HorizontalScope())
             {
-                GUIContent iconContent = new GUIContent(Utils.ErrorIcon, "Error: " + content.tooltip);
-                GUILayout.Label(iconContent, EditorStyles.label, GUILayout.Width(15), GUILayout.Height(15));
-                GUILayout.Label(content);
-                DrawSettingsLinkButton(content, color);
+                GUILayout.Space(LogIndent);
+                using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
+                {
+                    GUIContent iconContent = new GUIContent(Utils.ErrorIcon, "Error: " + content.tooltip);
+                    GUILayout.Label(iconContent, EditorStyles.label, GUILayout.Width(15), GUILayout.Height(15));
+                    GUILayout.Label(content);
+                    DrawSettingsLinkButton(content, color);
+                }
             }
             GUI.color = color;
         }
