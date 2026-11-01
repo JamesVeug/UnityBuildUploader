@@ -363,7 +363,10 @@ namespace Wireframe
                         {
                             isDirty = true;
                             Utils.CreateInstance(source.SourceType?.Type, out source.Source);
-                            source.Source.Context.SetParent(m_context);
+                            if (source.Source != null)
+                            {
+                                source.Source.Context.SetParent(m_context);
+                            }
                         }
                     }
 
@@ -621,7 +624,10 @@ namespace Wireframe
                         {
                             isDirty = true;
                             Utils.CreateInstance(destinationData.DestinationType?.Type, out destinationData.Destination);
-                            destinationData.Destination.Context.SetParent(m_context);
+                            if (destinationData.Destination != null)
+                            {
+                                destinationData.Destination.Context.SetParent(m_context);
+                            }
                         }
                     }
                             
