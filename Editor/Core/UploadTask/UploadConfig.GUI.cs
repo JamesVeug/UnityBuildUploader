@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -11,12 +12,19 @@ namespace Wireframe
     public partial class UploadConfig
     {
         internal const float StopTaskIfFailedToggleWidth = 150;
+        private const float ThinCollapsedTypeWidth = 120;
+        private const float ThinSectionSpacing = 10;
         private const float LogIndent = 15;
         
         internal bool Collapsed { get; set; } = true;
         
         private GUIStyle m_titleStyle;
+        private GUIStyle m_thinSectionStyle;
         private bool m_deferredIsDirty;
+        private bool m_thinSourcesExpanded = true;
+        private bool m_thinModifiersExpanded = true;
+        private bool m_thinDestinationsExpanded = true;
+        private bool m_thinActionsExpanded = true;
 
         public void SetupDefaults()
         {
@@ -58,11 +66,25 @@ namespace Wireframe
                     fontStyle = FontStyle.Bold
                 };
             }
+
+            if (m_thinSectionStyle == null)
+            {
+                m_thinSectionStyle = new GUIStyle(EditorStyles.foldout)
+                {
+                    fontStyle = FontStyle.Bold
+                };
+            }
         }
 
         internal void OnGUI(float windowWidth, ref bool isDirty)
         {
             SetupGUI();
+
+            if (m_deferredIsDirty)
+            {
+                isDirty = true;
+                m_deferredIsDirty = false;
+            }
 
             using (new EditorGUI.DisabledScope(!Enabled))
             {
@@ -98,15 +120,7 @@ namespace Wireframe
                         using (new EditorGUILayout.HorizontalScope())
                         {
                             // Source Type
-                            if (UIHelpers.SourcesPopup.DrawPopup(ref source.SourceType, m_context, GUILayout.MaxWidth(120)))
-                            {
-                                isDirty = true;
-                                Utils.CreateInstance(source.SourceType?.Type, out source.Source);
-                                if (source.Source != null)
-                                {
-                                    source.Source.Context.SetParent(m_context);
-                                }
-                            }
+                            isDirty |= DrawSourceTypePopup(source, GUILayout.MaxWidth(120));
 
                             // Source
                             float sourceWidth = parts;
@@ -120,26 +134,7 @@ namespace Wireframe
                         }
                     }
 
-                    if (Enabled)
-                    {
-                        List<GUIContent> sourceErrors = GetSourceErrors();
-                        if (sourceErrors.Count > 0)
-                        {
-                            foreach (GUIContent error in sourceErrors)
-                            {
-                                DrawError(error);
-                            }
-                        }
-
-                        List<GUIContent> sourceWarnings = GetSourceWarnings();
-                        if (sourceWarnings.Count > 0)
-                        {
-                            foreach (GUIContent warning in sourceWarnings)
-                            {
-                                DrawWarning(warning);
-                            }
-                        }
-                    }
+                    DrawSourceLogs();
                 }
 
                 // Progress / Modifiers
@@ -151,26 +146,7 @@ namespace Wireframe
                         GUILayout.Label(progressText, m_titleStyle, GUILayout.Width(splitWidth));
                     }
 
-                    if (Enabled)
-                    {
-                        List<GUIContent> modifierErrors = GetModifierErrors();
-                        if (modifierErrors.Count > 0)
-                        {
-                            foreach (GUIContent error in modifierErrors)
-                            {
-                                DrawError(error);
-                            }
-                        }
-
-                        List<GUIContent> modifierWarnings = GetModifierWarnings();
-                        if (modifierWarnings.Count > 0)
-                        {
-                            foreach (GUIContent warning in modifierWarnings)
-                            {
-                                DrawWarning(warning);
-                            }
-                        }
-                    }
+                    DrawModifierLogs();
                 }
 
                 using (new EditorGUILayout.VerticalScope())
@@ -185,15 +161,7 @@ namespace Wireframe
                         using (new EditorGUILayout.HorizontalScope())
                         {
                             // Destination Type
-                            if (UIHelpers.DestinationsPopup.DrawPopup(ref destinationData.DestinationType, m_context))
-                            {
-                                isDirty = true;
-                                Utils.CreateInstance(destinationData.DestinationType?.Type, out destinationData.Destination);
-                                if (destinationData.Destination != null)
-                                {
-                                    destinationData.Destination.Context.SetParent(m_context);
-                                }
-                            }
+                            isDirty |= DrawDestinationTypePopup(destinationData);
 
                             // Destination
                             float destinationWidth = parts;
@@ -207,27 +175,7 @@ namespace Wireframe
                             }
                         }
 
-                        if (destinationData.Destination != null)
-                        {
-                            List<GUIContent> logs = new List<GUIContent>();
-                            destinationData.Destination.TryGetErrors(logs);
-                            if (logs.Count > 0)
-                            {
-                                foreach (GUIContent error in logs)
-                                {
-                                    DrawError(error);
-                                }
-                            }
-                            logs.Clear();
-                            destinationData.Destination.TryGetWarnings(logs, m_context);
-                            if (logs.Count > 0)
-                            {
-                                foreach (GUIContent warning in logs)
-                                {
-                                    DrawWarning(warning);
-                                }
-                            }
-                        }
+                        DrawCollapsedDestinationLogs(destinationData);
                     }
                 }
 
@@ -235,26 +183,151 @@ namespace Wireframe
                 {
                     using (new EditorGUILayout.VerticalScope())
                     {
-                        List<GUIContent> modifierErrors = GetPostActionErrors();
-                        if (modifierErrors.Count > 0)
-                        {
-                            foreach (GUIContent error in modifierErrors)
-                            {
-                                DrawError(error);
-                            }
-                        }
-
-                        List<GUIContent> modifierWarnings = GetPostActionWarnings();
-                        if (modifierWarnings.Count > 0)
-                        {
-                            foreach (GUIContent warning in modifierWarnings)
-                            {
-                                DrawWarning(warning);
-                            }
-                        }
+                        DrawPostActionLogs();
                     }
                 }
             }
+        }
+
+        private void DrawSourceLogs()
+        {
+            if (!Enabled)
+            {
+                return;
+            }
+
+            foreach (GUIContent error in GetSourceErrors())
+            {
+                DrawError(error);
+            }
+
+            foreach (GUIContent warning in GetSourceWarnings())
+            {
+                DrawWarning(warning);
+            }
+        }
+
+        private void DrawModifierLogs()
+        {
+            if (!Enabled)
+            {
+                return;
+            }
+
+            foreach (GUIContent error in GetModifierErrors())
+            {
+                DrawError(error);
+            }
+
+            foreach (GUIContent warning in GetModifierWarnings())
+            {
+                DrawWarning(warning);
+            }
+        }
+
+        private void DrawCollapsedDestinationLogs(DestinationData destinationData)
+        {
+            if (destinationData.Destination == null)
+            {
+                return;
+            }
+
+            List<GUIContent> logs = new List<GUIContent>();
+            destinationData.Destination.TryGetErrors(logs);
+            foreach (GUIContent error in logs)
+            {
+                DrawError(error);
+            }
+
+            logs.Clear();
+            destinationData.Destination.TryGetWarnings(logs, m_context);
+            foreach (GUIContent warning in logs)
+            {
+                DrawWarning(warning);
+            }
+        }
+
+        private void DrawPostActionLogs()
+        {
+            if (!Enabled)
+            {
+                return;
+            }
+
+            foreach (GUIContent error in GetPostActionErrors())
+            {
+                DrawError(error);
+            }
+
+            foreach (GUIContent warning in GetPostActionWarnings())
+            {
+                DrawWarning(warning);
+            }
+        }
+
+        /// <returns>True if another type was chosen</returns>
+        private bool DrawSourceTypePopup(SourceData source, params GUILayoutOption[] options)
+        {
+            if (!UIHelpers.SourcesPopup.DrawPopup(ref source.SourceType, m_context, options))
+            {
+                return false;
+            }
+
+            Utils.CreateInstance(source.SourceType?.Type, out source.Source);
+            if (source.Source != null)
+            {
+                source.Source.Context.SetParent(m_context);
+            }
+            return true;
+        }
+
+        /// <returns>True if another type was chosen</returns>
+        private bool DrawModifierTypePopup(ModifierData modifiers, params GUILayoutOption[] options)
+        {
+            if (!UIHelpers.ModifiersPopup.DrawPopup(ref modifiers.ModifierType, m_context, options))
+            {
+                return false;
+            }
+
+            Utils.CreateInstance(modifiers.ModifierType?.Type, out modifiers.Modifier);
+            if (modifiers.Modifier != null)
+            {
+                modifiers.Modifier.Context.SetParent(m_context);
+            }
+            return true;
+        }
+
+        /// <returns>True if another type was chosen</returns>
+        private bool DrawDestinationTypePopup(DestinationData destinationData, params GUILayoutOption[] options)
+        {
+            if (!UIHelpers.DestinationsPopup.DrawPopup(ref destinationData.DestinationType, m_context, options))
+            {
+                return false;
+            }
+
+            Utils.CreateInstance(destinationData.DestinationType?.Type, out destinationData.Destination);
+            if (destinationData.Destination != null)
+            {
+                destinationData.Destination.Context.SetParent(m_context);
+            }
+            return true;
+        }
+
+        /// <returns>True if another type was chosen</returns>
+        private bool DrawPostActionTypePopup(UploadActionData actionData, params GUILayoutOption[] options)
+        {
+            if (!UIHelpers.ActionsPopup.DrawPopup(ref actionData.ActionType, m_context, options))
+            {
+                return false;
+            }
+
+            Utils.CreateInstance(actionData.ActionType?.Type, out actionData.UploadAction);
+            if (actionData.UploadAction != null)
+            {
+                actionData.UploadAction.Context.SetParent(m_context);
+                actionData.StopTaskIfFailed = actionData.UploadAction.DefaultStopTaskIfFailed;
+            }
+            return true;
         }
 
         public static void DrawWarning(GUIContent content)
@@ -315,40 +388,333 @@ namespace Wireframe
 
         private void OnGUIExpanded(float windowWidth, ref bool isDirty)
         {
-            if (m_deferredIsDirty)
-            {
-                isDirty = true;
-                m_deferredIsDirty = false;
-            }
-            
             using (new GUILayout.HorizontalScope())
             {
                 float maxWidth = windowWidth / 4;
                 using (new GUILayout.VerticalScope("box", GUILayout.MaxWidth(maxWidth)))
                 {
+                    DrawSectionTitle(Section.Sources);
                     DrawExpandedSources(ref isDirty);
                 }
 
                 using (new GUILayout.VerticalScope("box", GUILayout.MaxWidth(maxWidth)))
                 {
+                    DrawSectionTitle(Section.Modifiers);
                     DrawExpandedModifiers(ref isDirty);
                 }
 
                 using (new GUILayout.VerticalScope("box", GUILayout.MaxWidth(maxWidth)))
                 {
+                    DrawSectionTitle(Section.Destinations);
                     DrawExpandedDestinations(ref isDirty);
                 }
                 
                 using (new GUILayout.VerticalScope("box", GUILayout.MaxWidth(maxWidth)))
                 {
-                    DrawExpandedActions(ref isDirty);
+                    DrawSectionTitle(Section.Actions);
+                    DrawExpandedActions(ref isDirty, false);
                 }
             }
         }
 
+        /// <summary>
+        /// Draws the sections stacked as foldouts instead of side by side, for windows too thin for OnGUI. A folded
+        /// section still shows the type dropdown and one-line settings of each entry, as a collapsed Upload Config does.
+        /// </summary>
+        /// <param name="width">The width a section's contents can fill</param>
+        internal void OnGUIThin(float width, ref bool isDirty)
+        {
+            SetupGUI();
+
+            if (m_deferredIsDirty)
+            {
+                isDirty = true;
+                m_deferredIsDirty = false;
+            }
+
+            GUILayout.Space(ThinSectionSpacing);
+
+            // Only the contents are disabled with the config, so its sections can still be folded
+            using (new GUILayout.VerticalScope("box"))
+            {
+                bool expanded = DrawThinSectionFoldout(ref m_thinSourcesExpanded, Section.Sources);
+                using (new EditorGUI.DisabledScope(!Enabled))
+                {
+                    if (expanded)
+                    {
+                        DrawExpandedSources(ref isDirty);
+                    }
+                    else
+                    {
+                        DrawThinCollapsedSources(width, ref isDirty);
+                    }
+                }
+            }
+
+            GUILayout.Space(ThinSectionSpacing);
+
+            using (new GUILayout.VerticalScope("box"))
+            {
+                bool expanded = DrawThinSectionFoldout(ref m_thinModifiersExpanded, Section.Modifiers);
+                using (new EditorGUI.DisabledScope(!Enabled))
+                {
+                    if (expanded)
+                    {
+                        DrawExpandedModifiers(ref isDirty);
+                    }
+                    else
+                    {
+                        DrawThinCollapsedModifiers(ref isDirty);
+                    }
+                }
+            }
+
+            GUILayout.Space(ThinSectionSpacing);
+
+            using (new GUILayout.VerticalScope("box"))
+            {
+                bool expanded = DrawThinSectionFoldout(ref m_thinDestinationsExpanded, Section.Destinations);
+                using (new EditorGUI.DisabledScope(!Enabled))
+                {
+                    if (expanded)
+                    {
+                        DrawExpandedDestinations(ref isDirty);
+                    }
+                    else
+                    {
+                        DrawThinCollapsedDestinations(width, ref isDirty);
+                    }
+                }
+            }
+
+            GUILayout.Space(ThinSectionSpacing);
+
+            using (new GUILayout.VerticalScope("box"))
+            {
+                bool expanded = DrawThinSectionFoldout(ref m_thinActionsExpanded, Section.Actions);
+                using (new EditorGUI.DisabledScope(!Enabled))
+                {
+                    if (expanded)
+                    {
+                        DrawExpandedActions(ref isDirty, true);
+                    }
+                    else
+                    {
+                        DrawThinCollapsedActions(width, ref isDirty);
+                    }
+                }
+            }
+        }
+
+        /// <returns>True if the section is expanded</returns>
+        private bool DrawThinSectionFoldout(ref bool expanded, Section section)
+        {
+            Rect rect = GUILayoutUtility.GetRect(EditorGUIUtility.fieldWidth, EditorGUIUtility.fieldWidth,
+                EditorGUIUtility.singleLineHeight, EditorGUIUtility.singleLineHeight, m_thinSectionStyle);
+            if (EditorUtils.IsRightClicked(rect))
+            {
+                ShowSectionMenu(section);
+            }
+
+            GUIContent content = new GUIContent($"{section} ({GetEntryCount(section)})", GetSectionMenuTooltip(section));
+            expanded = EditorGUI.Foldout(rect, expanded, content, true, m_thinSectionStyle);
+            return expanded;
+        }
+
+        /// <summary>
+        /// The title above a section in the wide layout, which opens the section's menu when right-clicked.
+        /// </summary>
+        private void DrawSectionTitle(Section section)
+        {
+            GUIContent content = new GUIContent(section.ToString(), GetSectionMenuTooltip(section));
+            Rect rect = GUILayoutUtility.GetRect(content, m_titleStyle);
+            if (EditorUtils.IsRightClicked(rect))
+            {
+                ShowSectionMenu(section);
+            }
+
+            GUI.Label(rect, content, m_titleStyle);
+        }
+
+        private static string GetSectionMenuTooltip(Section section)
+        {
+            return $"Right-click to add, enable, copy or clear {section}";
+        }
+
+        /// <summary>
+        /// Opened by right-clicking a section's title.
+        /// </summary>
+        private void ShowSectionMenu(Section section)
+        {
+            GenericMenu menu = new GenericMenu();
+            AddSectionMenuItems(menu, section, "");
+            menu.ShowAsContext();
+        }
+
+        /// <summary>
+        /// The section menu's items, which the Upload Config's settings menu also shows in a submenu per section.
+        /// </summary>
+        /// <param name="path">The submenu to put them in, e.g. "Sources/", or "" for none</param>
+        internal void AddSectionMenuItems(GenericMenu menu, Section section, string path)
+        {
+            string title = section.ToString();
+            string entryName = GetEntryName(section);
+            int enabledCount = GetEntryCount(section, true);
+            int disabledCount = GetEntryCount(section, false);
+
+            string addPath = path + "Add New " + entryName + "/";
+            menu.AddMenuItem(addPath + "Choose Later", false, () => EditSection(() => AddEntry(section, null)), !Enabled);
+            menu.AddSeparator(addPath);
+            foreach (KeyValuePair<string, Type> entryType in GetEntryTypes(section))
+            {
+                Type type = entryType.Value;
+                menu.AddMenuItem(addPath + entryType.Key, false, () => EditSection(() => AddEntry(section, type)), !Enabled);
+            }
+
+            if (section == Section.Modifiers)
+            {
+                menu.AddMenuItem(path + "Add Default Modifiers", false, () => EditSection(AddDefaultModifiers), !Enabled);
+            }
+
+            menu.AddSeparator(path);
+
+            menu.AddMenuItem(path + "Enable All " + title, false, () => EditSection(() => SetAllEnabled(section, true)), !Enabled || disabledCount == 0);
+            menu.AddMenuItem(path + "Disable All " + title, false, () => EditSection(() => SetAllEnabled(section, false)), !Enabled || enabledCount == 0);
+            menu.AddMenuItem(path + "Remove Disabled " + title, false, () =>
+            {
+                if (EditorUtility.DisplayDialog("Remove Disabled " + title,
+                        $"Are you sure you want to remove the {disabledCount} disabled {title}?",
+                        "Yes", "Oops No!"))
+                {
+                    EditSection(() => RemoveDisabledEntries(section));
+                }
+            }, !Enabled || disabledCount == 0);
+
+            menu.AddSeparator(path);
+
+            menu.AddMenuItem(path + "Copy " + title, false, () => EditorGUIUtility.systemCopyBuffer = CopyEntries(section), GetEntryCount(section) == 0);
+            menu.AddMenuItem(path + "Paste " + title, false, () => EditSection(() => PasteEntries(section, EditorGUIUtility.systemCopyBuffer)),
+                !Enabled || !CanPasteEntries(section, EditorGUIUtility.systemCopyBuffer));
+
+            menu.AddSeparator(path);
+
+            menu.AddMenuItem(path + "Clear All " + title, false, () =>
+            {
+                if (EditorUtility.DisplayDialog("Clear All " + title,
+                        "Are you sure you want to remove all " + title + "?",
+                        "Yes", "Oops No!"))
+                {
+                    EditSection(() => ClearEntries(section));
+                }
+            }, !Enabled || GetEntryCount(section) == 0);
+        }
+
+        /// <summary>
+        /// Menu items run outside OnGUI, so the change is saved on the next one.
+        /// </summary>
+        private void EditSection(Action edit)
+        {
+            edit();
+            m_deferredIsDirty = true;
+        }
+
+        // The folded sections show each entry on one row, its type then its settings, as OnGUICollapsed does. Like
+        // OnGUICollapsed, they leave out disabled entries.
+        private void DrawThinCollapsedSources(float width, ref bool isDirty)
+        {
+            float settingsWidth = width - ThinCollapsedTypeWidth;
+            foreach (SourceData source in m_buildSources)
+            {
+                if (!source.Enabled)
+                {
+                    continue;
+                }
+
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    isDirty |= DrawSourceTypePopup(source, GUILayout.Width(ThinCollapsedTypeWidth));
+                    if (source.Source != null)
+                    {
+                        using (new EditorGUILayout.HorizontalScope(GUILayout.MaxWidth(settingsWidth)))
+                        {
+                            source.Source.OnGUICollapsed(ref isDirty, settingsWidth);
+                        }
+                    }
+                }
+            }
+
+            DrawSourceLogs();
+        }
+
+        // Modifiers have no one-line settings, so their type fills the row
+        private void DrawThinCollapsedModifiers(ref bool isDirty)
+        {
+            foreach (ModifierData modifiers in m_modifiers)
+            {
+                if (modifiers.Enabled)
+                {
+                    isDirty |= DrawModifierTypePopup(modifiers);
+                }
+            }
+
+            DrawModifierLogs();
+        }
+
+        private void DrawThinCollapsedDestinations(float width, ref bool isDirty)
+        {
+            float settingsWidth = width - ThinCollapsedTypeWidth;
+            foreach (DestinationData destinationData in m_buildDestinations)
+            {
+                if (!destinationData.Enabled)
+                {
+                    continue;
+                }
+
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    isDirty |= DrawDestinationTypePopup(destinationData, GUILayout.Width(ThinCollapsedTypeWidth));
+                    if (destinationData.Destination != null)
+                    {
+                        using (new EditorGUILayout.HorizontalScope(GUILayout.MaxWidth(settingsWidth)))
+                        {
+                            destinationData.Destination.OnPreGUI(ref isDirty, m_context);
+                            destinationData.Destination.OnGUICollapsed(ref isDirty, settingsWidth);
+                        }
+                    }
+                }
+
+                DrawCollapsedDestinationLogs(destinationData);
+            }
+        }
+
+        private void DrawThinCollapsedActions(float width, ref bool isDirty)
+        {
+            float settingsWidth = width - ThinCollapsedTypeWidth;
+            foreach (UploadActionData actionData in m_postActions)
+            {
+                if (actionData.WhenToExecute == UploadActionData.UploadCompleteStatus.Never)
+                {
+                    continue;
+                }
+
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    isDirty |= DrawPostActionTypePopup(actionData, GUILayout.Width(ThinCollapsedTypeWidth));
+                    if (actionData.UploadAction != null)
+                    {
+                        using (new EditorGUILayout.HorizontalScope(GUILayout.MaxWidth(settingsWidth)))
+                        {
+                            actionData.UploadAction.OnGUICollapsed(ref isDirty, settingsWidth);
+                        }
+                    }
+                }
+            }
+
+            DrawPostActionLogs();
+        }
+
         private void DrawExpandedSources(ref bool isDirty)
         {
-            GUILayout.Label("Sources", m_titleStyle);
             for (var i = 0; i < m_buildSources.Count; i++)
             {
                 var source = m_buildSources[i];
@@ -359,15 +725,7 @@ namespace Wireframe
                     using (new EditorGUI.DisabledScope(!source.Enabled))
                     {
                         GUILayout.Label("Source Type: ", GUILayout.Width(100));
-                        if (UIHelpers.SourcesPopup.DrawPopup(ref source.SourceType, m_context))
-                        {
-                            isDirty = true;
-                            Utils.CreateInstance(source.SourceType?.Type, out source.Source);
-                            if (source.Source != null)
-                            {
-                                source.Source.Context.SetParent(m_context);
-                            }
-                        }
+                        isDirty |= DrawSourceTypePopup(source);
                     }
 
                     if (source.SourceType != null)
@@ -508,7 +866,6 @@ namespace Wireframe
 
         private void DrawExpandedModifiers(ref bool isDirty)
         {
-            GUILayout.Label("Modifiers", m_titleStyle);
             for (var i = 0; i < m_modifiers.Count; i++)
             {
                 ModifierData modifiers = m_modifiers[i];
@@ -519,15 +876,7 @@ namespace Wireframe
                     using (new EditorGUI.DisabledScope(!modifiers.Enabled))
                     {
                         GUILayout.Label("Modifier Type: ", GUILayout.Width(100));
-                        if (UIHelpers.ModifiersPopup.DrawPopup(ref modifiers.ModifierType, m_context))
-                        {
-                            isDirty = true;
-                            Utils.CreateInstance(modifiers.ModifierType?.Type, out modifiers.Modifier);
-                            if (modifiers.Modifier != null)
-                            {
-                                modifiers.Modifier.Context.SetParent(m_context);
-                            }
-                        }
+                        isDirty |= DrawModifierTypePopup(modifiers);
                     }
                             
                     if (modifiers.ModifierType != null)
@@ -609,7 +958,6 @@ namespace Wireframe
 
         private void DrawExpandedDestinations(ref bool isDirty)
         {
-            GUILayout.Label("Destinations", m_titleStyle);
             for (var i = 0; i < m_buildDestinations.Count; i++)
             {
                 var destinationData = m_buildDestinations[i];
@@ -620,15 +968,7 @@ namespace Wireframe
                     GUILayout.Label("Destination Type: ", GUILayout.Width(120));
                     using (new EditorGUI.DisabledScope(!destinationData.Enabled))
                     {
-                        if (UIHelpers.DestinationsPopup.DrawPopup(ref destinationData.DestinationType, m_context))
-                        {
-                            isDirty = true;
-                            Utils.CreateInstance(destinationData.DestinationType?.Type, out destinationData.Destination);
-                            if (destinationData.Destination != null)
-                            {
-                                destinationData.Destination.Context.SetParent(m_context);
-                            }
-                        }
+                        isDirty |= DrawDestinationTypePopup(destinationData);
                     }
                             
                     if (destinationData.DestinationType != null)
@@ -735,15 +1075,19 @@ namespace Wireframe
             return true;
         }
 
-        private void DrawExpandedActions(ref bool isDirty)
+        /// <param name="thin">Leaves out the label and moves the Stop task toggle to its own line so the row fits a thin window</param>
+        private void DrawExpandedActions(ref bool isDirty, bool thin)
         {
-            GUILayout.Label("Actions", m_titleStyle);
             for (var i = 0; i < m_postActions.Count; i++)
             {
                 var actionData = m_postActions[i];
                 using (new GUILayout.HorizontalScope())
                 {
-                    GUILayout.Label("Action Type: ", GUILayout.Width(120));
+                    if (!thin)
+                    {
+                        GUILayout.Label("Action Type: ", GUILayout.Width(120));
+                    }
+
                     var status =
                         (UploadActionData.UploadCompleteStatus)EditorGUILayout.EnumPopup(actionData.WhenToExecute,
                             GUILayout.Width(100));
@@ -753,22 +1097,16 @@ namespace Wireframe
                         isDirty = true;
                     }
 
-                    isDirty |= DrawStopTaskIfFailedToggle(actionData);
+                    if (!thin)
+                    {
+                        isDirty |= DrawStopTaskIfFailedToggle(actionData);
+                    }
 
                     bool disabled = actionData.WhenToExecute == UploadActionData.UploadCompleteStatus.Never;
                     using (new EditorGUI.DisabledScope(disabled))
                     {
-                        if (UIHelpers.ActionsPopup.DrawPopup(ref actionData.ActionType, m_context,
-                                GUILayout.Width(200)))
-                        {
-                            isDirty = true;
-                            Utils.CreateInstance(actionData.ActionType?.Type, out actionData.UploadAction);
-                            if (actionData.UploadAction != null)
-                            {
-                                actionData.UploadAction.Context.SetParent(m_context);
-                                actionData.StopTaskIfFailed = actionData.UploadAction.DefaultStopTaskIfFailed;
-                            }
-                        }
+                        GUILayoutOption typeWidth = thin ? GUILayout.MinWidth(80) : GUILayout.Width(200);
+                        isDirty |= DrawPostActionTypePopup(actionData, typeWidth);
                     }
                     
                     if (CustomSettingsIcon.OnGUI())
@@ -786,6 +1124,11 @@ namespace Wireframe
                         });
                         menu.ShowAsContext();
                     }
+                }
+
+                if (thin)
+                {
+                    isDirty |= DrawStopTaskIfFailedToggle(actionData);
                 }
 
                 using (new GUILayout.VerticalScope())

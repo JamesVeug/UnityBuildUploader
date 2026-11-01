@@ -40,6 +40,22 @@ namespace Wireframe
             return newText;
         }
 
+        /// <summary>
+        /// Uses the event when the rect is right-clicked. Call it before drawing the control in the rect so the control
+        /// doesn't also take the click.
+        /// </summary>
+        internal static bool IsRightClicked(Rect rect)
+        {
+            Event current = Event.current;
+            if (current.type != EventType.MouseDown || current.button != 1 || !rect.Contains(current.mousePosition))
+            {
+                return false;
+            }
+
+            current.Use();
+            return true;
+        }
+
         public static IEnumerable<Command> GetAllCommands(Context ctx)
         {
             HashSet<string> seenKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
