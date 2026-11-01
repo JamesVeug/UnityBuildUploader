@@ -24,7 +24,10 @@ namespace Wireframe
                 text = m_context.FormatString(m_MethodPath) + "()";
             }
 
-            EditorGUILayout.LabelField(text, EditorStyles.boldLabel);
+            // Not EditorGUILayout.LabelField, which is never narrower than a label and a field (about 200px) and so
+            // doesn't fit beside the action's type in a thin Upload tab
+            GUIContent content = new GUIContent(Utils.TruncateText(text, maxWidth, text), text);
+            GUILayout.Label(content, EditorStyles.boldLabel, GUILayout.MaxWidth(maxWidth));
         }
 
         public override void OnGUIExpanded(ref bool isDirty)
