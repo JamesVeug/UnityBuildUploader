@@ -21,10 +21,10 @@ namespace Wireframe
         private GUIStyle m_titleStyle;
         private GUIStyle m_thinSectionStyle;
         private bool m_deferredIsDirty;
-        private bool m_thinSourcesExpanded = true;
+        private bool m_thinSourcesExpanded = false;
         private bool m_thinModifiersExpanded = true;
-        private bool m_thinDestinationsExpanded = true;
-        private bool m_thinActionsExpanded = true;
+        private bool m_thinDestinationsExpanded = false;
+        private bool m_thinActionsExpanded = false;
 
         public void SetupDefaults()
         {
