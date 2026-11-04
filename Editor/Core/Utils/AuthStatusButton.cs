@@ -146,6 +146,14 @@ namespace Wireframe
                 m_busy.Remove(key);
                 InternalEditorUtility.RepaintAllViews();
             }
+
+            // Otherwise a check that can't tell, such as Steam printing something unexpected, leaves the user with no
+            // way to log in: every click would only check again.
+            AuthStatus status = service.GetAuthStatus();
+            if (status == AuthStatus.RequiresLogin || status == AuthStatus.Unknown)
+            {
+                service.StartAuthentication();
+            }
         }
 
         private static GUIContent GetContent(IAuthenticatedService service, AuthStatus status, bool busy)
@@ -169,11 +177,11 @@ namespace Wireframe
             {
                 case AuthStatus.Authorized:
                     return Icon("TestPassed", "✓",
-                        $"{name} is logged in on this machine.{detail}\n\nClick to verify it still is.");
+                        $"{name} is logged in on this machine.{detail}\n\nClick to verify it still is, and log in if it isn't.");
 
                 case AuthStatus.CredentialsCached:
                     return Icon("TestPassed", "✓",
-                        $"{name} has login details saved on this machine but we have not confirmed they work.{detail}\n\nClick to verify them.");
+                        $"{name} has login details saved on this machine but we have not confirmed they work.{detail}\n\nClick to verify them, and log in if they don't.");
 
                 case AuthStatus.RequiresLogin:
                     return Icon("TestFailed", "✗",
@@ -181,7 +189,7 @@ namespace Wireframe
 
                 default:
                     return Icon("console.warnicon.sml", "!",
-                        $"Nobody has checked whether {name} is logged in on this machine.{detail}\n\nClick to check.");
+                        $"Nobody has checked whether {name} is logged in on this machine.{detail}\n\nClick to check, and log in if it isn't.");
             }
         }
 

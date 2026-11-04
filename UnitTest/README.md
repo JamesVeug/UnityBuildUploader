@@ -17,6 +17,7 @@ row to [`UntestedFixes.md`](UntestedFixes.md) instead, saying what would make it
 | | `BuildSourceAddressablesTests` | Nothing | Build Addressables and Clean Addressables are saved, default to off in older JSON, are kept without Addressables, and are validated (uses a stand-in for the integration) |
 | | `ProcessUtilsTests` | Nothing | ANSI colour codes stripped from captured output; `EnsureExecutable` restores the exec bit |
 | | `SdkInitializationTests` | Nothing | Steam, itch.io, Nintendo and PlayStation `Initialize` on fake SDK folders make their tools executable; Steam login status is cleared and kept per user |
+| | `SteamLoginOutputTests` | Nothing | Reading SteamCMD's login output on every host: OK after a login token warning or a Steam Mobile app approval, and the Steam Login window's results (wrong password, a Steam Guard code needed or wrong, the password and code hidden from the message) |
 | | `SteamLoginProbeTests` (macOS, Linux) | Nothing | `SteamSDK.ProbeLoginAsync` against a fake `steamcmd.sh`: coloured output, Steam Guard, rate limit, Linux SteamCMD HOME, where the saved login is read |
 | | `EpicGamesUploadTests` (macOS, Linux) | Nothing | `EpicGames.Upload` against a fake BuildPatchTool: exec bit and secret passed by name |
 | | `SteamDepotTests` | Nothing | Depot Ids never reused, labels with Depot IDs, missing/duplicate Depot ID errors in the app config and the Steam destination (#115, #116) |
