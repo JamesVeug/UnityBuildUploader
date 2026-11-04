@@ -184,6 +184,31 @@ namespace Wireframe
             GetEntries(section).Clear();
         }
 
+        /// <summary>
+        /// Moves one entry to another place in its section, for the Move items in an entry's settings menu.
+        /// </summary>
+        /// <param name="index">Where the entry ends up, clamped to the section</param>
+        /// <returns>False if the entry isn't in the section or is already at that index</returns>
+        internal bool MoveEntry(Section section, object entry, int index)
+        {
+            IList entries = GetEntries(section);
+            int oldIndex = entries.IndexOf(entry);
+            index = Math.Max(0, Math.Min(index, entries.Count - 1));
+            if (oldIndex < 0 || oldIndex == index)
+            {
+                return false;
+            }
+
+            entries.RemoveAt(oldIndex);
+            entries.Insert(index, entry);
+            return true;
+        }
+
+        internal int GetEntryIndex(Section section, object entry)
+        {
+            return GetEntries(section).IndexOf(entry);
+        }
+
         /// <returns>JSON to put on the clipboard, which PasteEntries reads back into the same section of any config</returns>
         internal string CopyEntries(Section section)
         {

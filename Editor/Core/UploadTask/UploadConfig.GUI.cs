@@ -610,6 +610,21 @@ namespace Wireframe
         }
 
         /// <summary>
+        /// Move To Top, Move Up, Move Down and Move To Bottom for the settings menu on one entry of a section.
+        /// </summary>
+        private void AddEntryMoveMenuItems(GenericMenu menu, Section section, object entry)
+        {
+            int index = GetEntryIndex(section, entry);
+            bool isFirst = index <= 0;
+            bool isLast = index < 0 || index >= GetEntryCount(section) - 1;
+
+            menu.AddMenuItem("Move To Top", false, () => EditSection(() => MoveEntry(section, entry, 0)), isFirst);
+            menu.AddMenuItem("Move Up", false, () => EditSection(() => MoveEntry(section, entry, GetEntryIndex(section, entry) - 1)), isFirst);
+            menu.AddMenuItem("Move Down", false, () => EditSection(() => MoveEntry(section, entry, GetEntryIndex(section, entry) + 1)), isLast);
+            menu.AddMenuItem("Move To Bottom", false, () => EditSection(() => MoveEntry(section, entry, GetEntryCount(section) - 1)), isLast);
+        }
+
+        /// <summary>
         /// Menu items run outside OnGUI, so the change is saved on the next one.
         /// </summary>
         private void EditSection(Action edit)
@@ -742,6 +757,8 @@ namespace Wireframe
                     if (CustomSettingsIcon.OnGUI())
                     {
                         GenericMenu menu = new GenericMenu();
+                        AddEntryMoveMenuItems(menu, Section.Sources, source);
+                        menu.AddSeparator("");
                         menu.AddItem(new GUIContent("Remove Source"), false, () =>
                         {
                             if (EditorUtility.DisplayDialog("Remove Source",
@@ -893,9 +910,8 @@ namespace Wireframe
                     if (CustomSettingsIcon.OnGUI())
                     {
                         GenericMenu menu = new GenericMenu();
-                                
+                        AddEntryMoveMenuItems(menu, Section.Modifiers, modifiers);
                         menu.AddSeparator("");
-                                
                         menu.AddItem(new GUIContent("Remove Modifier"), false, () =>
                         {
                             if (EditorUtility.DisplayDialog("Remove Modifier",
@@ -986,6 +1002,8 @@ namespace Wireframe
                     if (CustomSettingsIcon.OnGUI())
                     {
                         GenericMenu menu = new GenericMenu();
+                        AddEntryMoveMenuItems(menu, Section.Destinations, destinationData);
+                        menu.AddSeparator("");
                         menu.AddItem(new GUIContent("Remove Destination"), false, () =>
                         {
                             if(EditorUtility.DisplayDialog("Remove Destination",
@@ -1112,6 +1130,8 @@ namespace Wireframe
                     if (CustomSettingsIcon.OnGUI())
                     {
                         GenericMenu menu = new GenericMenu();
+                        AddEntryMoveMenuItems(menu, Section.Actions, actionData);
+                        menu.AddSeparator("");
                         menu.AddItem(new GUIContent("Remove Action"), false, () =>
                         {
                             if(EditorUtility.DisplayDialog("Remove Action",

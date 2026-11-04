@@ -98,6 +98,42 @@ namespace Wireframe.UnitTest
         }
 
         [Test]
+        public void MovedEntriesKeepTheOthersInOrder()
+        {
+            UploadConfig config = new UploadConfig();
+            config.AddSource(new UploadConfig.SourceData(new FileSource()));
+            config.AddSource(new UploadConfig.SourceData(new FolderSource()));
+            config.AddSource(new UploadConfig.SourceData(new FileSource(), false));
+            UploadConfig.SourceData first = config.Sources[0];
+            UploadConfig.SourceData second = config.Sources[1];
+            UploadConfig.SourceData third = config.Sources[2];
+
+            Assert.IsTrue(config.MoveEntry(Sources, first, 2));
+            CollectionAssert.AreEqual(new[] { second, third, first }, config.Sources);
+
+            Assert.IsTrue(config.MoveEntry(Sources, first, config.GetEntryIndex(Sources, first) - 1));
+            CollectionAssert.AreEqual(new[] { second, first, third }, config.Sources);
+
+            Assert.IsTrue(config.MoveEntry(Sources, third, 0));
+            CollectionAssert.AreEqual(new[] { third, second, first }, config.Sources);
+        }
+
+        [Test]
+        public void MovingPastEitherEndDoesNothing()
+        {
+            UploadConfig config = new UploadConfig();
+            config.AddPostAction(new InvokeStaticMethodAction(), Always);
+            config.AddPostAction(new InvokeStaticMethodAction(), Never);
+            UploadConfig.UploadActionData first = config.PostActions[0];
+            UploadConfig.UploadActionData last = config.PostActions[1];
+
+            Assert.IsFalse(config.MoveEntry(Actions, first, -1));
+            Assert.IsFalse(config.MoveEntry(Actions, last, 2));
+            Assert.IsFalse(config.MoveEntry(Actions, new UploadConfig.UploadActionData(), 0), "An entry from another config isn't moved in.");
+            CollectionAssert.AreEqual(new[] { first, last }, config.PostActions);
+        }
+
+        [Test]
         public void CopiedEntriesPasteIntoTheSameSectionOfAnotherConfig()
         {
             UploadConfig copiedFrom = new UploadConfig();
