@@ -193,6 +193,30 @@ namespace Wireframe.UnitTest
         }
 
         [UnityTest]
+        public IEnumerator ReloadWhileWaitingToStartAStepStartsIt()
+        {
+            string source = Fixture("ResumeWaiting", "root.txt", "root");
+            var gate = new UnitTestGateDestination();
+            var task = new UploadTask("Core reload while waiting", Config(new FolderSource(source), gate));
+
+            _ = task.StartAsync(false);
+            yield return TestSupport.WaitUntil(() => gate.HasEntered, Timeout, "The task did not reach Upload");
+            Dictionary<string, object> checkpoint = Abandon(task);
+            // As saved while waiting for scripts to compile before Upload started
+            checkpoint["stepPhase"] = "Waiting";
+            UploadTask resumed = Resume(checkpoint);
+            Task run = resumed.ResumeAsync();
+            var resumedGate = (UnitTestGateDestination)resumed.UploadConfigs[0].Destinations[0].Destination;
+            yield return TestSupport.WaitUntil(() => resumedGate.HasEntered || run.IsCompleted, Timeout, "The resumed task did not start Upload");
+            resumedGate.Release(true);
+            yield return TestSupport.Await(run, Timeout);
+
+            Assert.IsTrue(resumed.IsSuccessful, resumed.Report.GetReport());
+            Assert.IsTrue(resumedGate.HasEntered, "Upload must start after a reload that happened before it started.");
+            Assert.IsTrue(Logs(resumed, StepType.Upload).Any(log => log.Contains("before Upload started")), resumed.Report.GetReport());
+        }
+
+        [UnityTest]
         public IEnumerator InterruptedActionsAfterAStepDoNotRunTheStepAgain()
         {
             string gated = Fixture("ResumeActions", "gated.txt", "gated");

@@ -402,6 +402,11 @@ namespace Wireframe
 
                 // Saved before every step so a script reload can resume the task from here
                 m_report.CurrentStep = step.Type;
+                await WaitForScriptsToCompile(step, token);
+                if (m_debugForceStopTask)
+                {
+                    return;
+                }
                 Checkpoint(step.Type, CheckpointPhase.Running);
 
                 // Perform the Step (GetSources, CacheSources, etc.)

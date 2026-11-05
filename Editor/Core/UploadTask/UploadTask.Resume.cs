@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using UnityEditor;
 using UnityEngine;
 
 namespace Wireframe
@@ -19,6 +21,11 @@ namespace Wireframe
         /// </summary>
         internal const int MaxInterruptions = 3;
 
+        /// <summary>
+        /// Editor updates to wait after a compile finishes, for the script reload that can follow it
+        /// </summary>
+        private const int CompileSettleUpdates = 3;
+
         // Tasks running in this domain, including ones never added to AllTasks
         private static readonly HashSet<string> s_liveTasks = new HashSet<string>();
 
@@ -26,6 +33,7 @@ namespace Wireframe
         {
             Running, // The step is running
             Actions, // The step finished and its AfterEachStepCompletes actions are running
+            Waiting, // The step hasn't started: the task is waiting for scripts to finish compiling first
         }
 
         /// <summary>
@@ -359,6 +367,10 @@ namespace Wireframe
                 FailInterruptedStep(step.Type, $"Scripts reloaded {m_interruptions} times during {step.Type}, so the task stopped. Another package may keep changing the scripting defines.");
                 startStep = index + 1;
             }
+            else if (m_checkpointPhase == CheckpointPhase.Waiting)
+            {
+                m_report.NewReport(step.Type).AddLog($"Scripts reloaded before {step.Type} started, so it starts now.");
+            }
             else if (!step.CanRerunAfterReload)
             {
                 FailInterruptedStep(step.Type, $"A script reload interrupted {step.Type}. It can't be re-run safely, so the task stopped.");
@@ -372,6 +384,46 @@ namespace Wireframe
             // Saved now so the next reload counts this one
             WriteCheckpoint();
             await RunAsync(steps, startStep);
+        }
+
+        /// <summary>
+        /// A script reload part way through a step that can't run again fails the task. A build can leave the editor
+        /// compiling, for example when it changed the active build profile's scripting defines, so before such a step
+        /// starts this waits for the compile and its reload. A reload while waiting resumes at the start of the step.
+        /// Batch mode compiles before a build rather than after it, so it doesn't wait.
+        /// </summary>
+        private async Task WaitForScriptsToCompile(AUploadTask_Step step, CancellationTokenSource token)
+        {
+            if (step.CanRerunAfterReload || Application.isBatchMode)
+            {
+                return;
+            }
+
+            // isCompiling is true as soon as a compile is requested, but Unity requests one for changed scripting
+            // defines on an editor update after the build
+            Checkpoint(step.Type, CheckpointPhase.Waiting);
+            await Task.Yield();
+
+            if (!EditorApplication.isCompiling || m_debugForceStopTask)
+            {
+                return;
+            }
+
+            m_report.SetProcess(AUploadTask_Step.StepProcess.Pre);
+            UploadTaskReport.StepResult result = m_report.NewReport(step.Type);
+            result.AddLog($"Waiting for scripts to finish compiling before {step.Type} starts, so a script reload can't interrupt it.");
+            while (EditorApplication.isCompiling && !token.IsCancellationRequested && !m_debugForceStopTask)
+            {
+                await Task.Yield();
+            }
+
+            for (int i = 0; i < CompileSettleUpdates && !m_debugForceStopTask; i++)
+            {
+                await Task.Yield();
+            }
+
+            result.AddLog("Scripts finished compiling.");
+            result.SetPercentComplete(1f);
         }
 
         private void FailInterruptedStep(AUploadTask_Step.StepType stepType, string reason)

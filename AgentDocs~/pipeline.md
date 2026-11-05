@@ -144,6 +144,11 @@ running task saves a checkpoint, and `UploadTaskResumer` carries it on afterward
   - The others fail the task with the reason, then PostUploadActions and Cleanup run: PreUploadActions,
     CacheSources, ModifyCacheSources, Upload, PostUploadActions. They have outside effects or change files in place.
   - A reload during a step's after-step actions skips to the next step.
+  - Before one of the steps that can't run again starts, outside batch mode, the task saves a `Waiting` checkpoint and
+    waits while `EditorApplication.isCompiling` (`UploadTask.WaitForScriptsToCompile`). A player build can leave the
+    editor compiling, for example when it changed the active build profile's scripting defines, and the reload would
+    otherwise land part way through CacheSources or ModifyCacheSources. A reload while waiting resumes at the start
+    of that step.
   - The same step interrupted `UploadTask.MaxInterruptions` (3) times fails, for packages that keep changing the
     defines (#108).
 - **Run state**: `CaptureRunState()` / `RestoreRunState()` on sources, destinations and actions save what they
