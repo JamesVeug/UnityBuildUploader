@@ -112,6 +112,27 @@ namespace Wireframe.UnitTest
         }
 
         [UnityTest]
+        public IEnumerator DisabledLocalPathDestinationIsNotUsedAsCache()
+        {
+            Preferences.UseLocalDestinationIfAvailable = true;
+            string source = Fixture("DisabledCache", "root.txt", "root");
+            string disabledOutput = Fixture("DisabledCacheDestination", "old.txt", "old");
+            string enabledOutput = Output("DisabledCacheEnabled");
+            var config = new UploadConfig();
+            config.AddSource(new FolderSource(source));
+            config.AddDestination(new UploadConfig.DestinationData(new LocalPathDestination(disabledOutput), false));
+            config.AddDestination(new LocalPathDestination(enabledOutput));
+            var task = new UploadTask("Core disabled cache", config);
+
+            yield return Run(task);
+
+            Assert.IsTrue(Utils.ComparePaths(enabledOutput, task.CachedLocations[0]), "Expected the enabled destination to be the cache: " + task.CachedLocations[0]);
+            Assert.AreEqual("old", File.ReadAllText(Path.Combine(disabledOutput, "old.txt")), "A disabled destination must not be wiped.");
+            Assert.IsFalse(File.Exists(Path.Combine(disabledOutput, "root.txt")), "A disabled destination must not receive the build.");
+            Assert.AreEqual("root", File.ReadAllText(Path.Combine(enabledOutput, "root.txt")));
+        }
+
+        [UnityTest]
         public IEnumerator MissingSourceFailsValidationAndUploadsNothing()
         {
             string missing = Path.Combine(TestSupport.OutputDirectory("Missing"), "does-not-exist");

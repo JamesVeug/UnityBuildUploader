@@ -125,7 +125,8 @@ namespace Wireframe
         {
             foreach (UploadConfig.DestinationData destinationData in config.Destinations)
             {
-                if (destinationData.Destination is LocalPathDestination localPathDestination)
+                // A disabled destination must not be wiped and built into
+                if (destinationData.Enabled && destinationData.Destination is LocalPathDestination localPathDestination)
                 {
                     if (!localPathDestination.IsZippingContents)
                     {

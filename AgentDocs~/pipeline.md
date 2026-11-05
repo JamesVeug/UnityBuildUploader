@@ -162,7 +162,7 @@ running task saves a checkpoint, and `UploadTaskResumer` carries it on afterward
 
 | Preference | Effect |
 | --- | --- |
-| `UseLocalDestinationIfAvailable` (default on) | The first non-zipping `LocalPathDestination` becomes the cache; it is wiped in Validation if it exists and is not cleaned up afterwards |
+| `UseLocalDestinationIfAvailable` (default on) | The first enabled non-zipping `LocalPathDestination` becomes the cache; it is wiped in Validation if it exists and is not cleaned up afterwards |
 | `DeleteCacheAfterUpload` (default on) | Cleanup deletes task cache folders it created |
 | `CacheFolderPath` | Cache root; default `Application.persistentDataPath/BuildUploader/CachedBuilds` |
 | `AutoDecompressZippedSourceFiles` (default on) | A `.zip` file source is extracted into the cache |
