@@ -47,7 +47,7 @@ namespace Wireframe
 
             // Running
             [CliArg("start_tasks", "UploadProfile GUIDs or names to run the full pipeline for, or 'all'. Starts asynchronously - poll --active_tasks. Comma- or space-separated.")] string startTasks = null,
-            [CliArg("dry_run_tasks", "UploadProfile GUIDs or names to run with every destination swapped for Nowhere so nothing is uploaded, or 'all'. Comma- or space-separated.")] string dryRunTasks = null,
+            [CliArg("dry_run_tasks", "UploadProfile GUIDs or names to run as a dry run, or 'all': it makes local changes, such as builds, but nothing leaves the local PC. Starts asynchronously - poll --active_tasks. Comma- or space-separated.")] string dryRunTasks = null,
             [CliArg("cancel_tasks", "UploadTask GUIDs to cancel, or 'all' for every running task. Comma- or space-separated.")] string cancelTasks = null,
 
             // Mutations
@@ -963,31 +963,27 @@ namespace Wireframe
         }
 
         /// <summary>
-        /// Swaps every destination for a NoUploadDestination so sources and modifiers run but nothing is
-        /// uploaded. The profile on disk is untouched - the swap happens on a deserialized copy.
+        /// Starts each profile as a dry run (UploadTask.SetDryRun). A dry run upload will make local changes but nothing
+        /// will leave the local PC: actions are covered too, not only destinations. The task runs a copy of the profile,
+        /// so the profile isn't changed.
         /// </summary>
         private static List<StartedTaskResult> DryRunTasks(List<string> profileIds)
         {
             List<StartedTaskResult> started = new List<StartedTaskResult>();
             foreach (string profileId in profileIds)
             {
-                UploadProfile profile = CloneProfileInMemory(ResolveProfile(profileId));
-                foreach (UploadConfig config in profile.UploadConfigs)
-                {
-                    config.Destinations.Clear();
-                    config.AddDestination(new NoUploadDestination());
-                }
-
-                started.Add(StartProfile(profile, $"Dry run from the CLI ({profileId})"));
+                UploadProfile profile = ResolveProfile(profileId);
+                started.Add(StartProfile(profile, $"Dry run from the CLI ({profileId})", true));
             }
 
             return started;
         }
 
-        private static StartedTaskResult StartProfile(UploadProfile profile, string description)
+        private static StartedTaskResult StartProfile(UploadProfile profile, string description, bool dryRun = false)
         {
             UploadTask task = new UploadTask(profile);
             task.SetBuildDescription(description);
+            task.SetDryRun(dryRun);
             UploadTask.AllTasks.Add(task);
             task.Start();
 

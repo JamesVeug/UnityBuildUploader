@@ -45,7 +45,9 @@ Arguments, in group order: **Listing** (`profiles`, `active_tasks`, `source_type
 `clone_tasks`, `delete_profiles`, `delete_tasks`, `clear_cache`, `export_wiki`) → **Safety** (`confirm`).
 
 - Profiles are addressed by GUID or name; tasks by GUID. `all` (also `true`, `*`) expands per operation.
-- `dry_run_tasks` clones the profile in memory and swaps every destination for `NoUploadDestination`.
+- `dry_run_tasks` starts each profile with `UploadTask.SetDryRun(true)`, so it makes local changes but nothing leaves
+  the local PC: destinations and actions alike either run their own dry run, run as normal if they only work locally,
+  or are skipped (see Dry runs in `pipeline.md`).
 - `delete_profiles`, `delete_tasks`, `clear_cache` refuse to run without `confirm`. New destructive
   arguments must do the same. A modal dialog is never shown when nobody is at the Editor.
 - Result field names are the JSON keys callers see: keep them lower camel case and treat renames as breaking.
