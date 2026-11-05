@@ -51,6 +51,11 @@ namespace Wireframe
             }
         }
 
+        protected internal override void OnGUICollapsed(ref bool isDirty, float maxWidth, Context ctx)
+        {
+            DrawCollapsedLabel($"{m_decompressionType}: '{ctx.FormatString(m_filePath)}' → '{ctx.FormatString(m_targetPathToCompress)}'", maxWidth);
+        }
+
         public override string Summary()
         {
             return $"Decompressing '{m_targetPathToCompress}'";

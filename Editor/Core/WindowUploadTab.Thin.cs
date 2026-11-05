@@ -22,6 +22,8 @@ namespace Wireframe
         private const float ThinContentPadding = 50; // The boxes and scroll bar around a collapsed GUI
         private const float ThinSmallButtonWidth = 24;
         private const string ThinTabMenuTooltip = "\n\nRight-click for Enabled, Move, Duplicate, Delete and more";
+        private static readonly GUIContent ThinUploadProfileLabel = new GUIContent("Upload Profile");
+        private static readonly GUIContent ThinUploadConfigsLabel = new GUIContent("Upload Configs");
 
         private bool m_usingThinLayout;
         private UploadConfig m_thinSelectedConfig;
@@ -63,17 +65,25 @@ namespace Wireframe
         {
             using (new GUILayout.VerticalScope())
             {
-                using (new EditorGUILayout.HorizontalScope())
+                // A toolbar like the Upload Configs row below it so the two rows look the same
+                using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
                 {
+                    DrawThinRowLabel(ThinUploadProfileLabel);
                     DrawUploadProfilePopup(GUILayout.MinWidth(60));
-                    DrawSaveButton(GUILayout.Width(50));
+                    DrawSaveButton(EditorStyles.toolbarButton, GUILayout.Width(50));
 
-                    if (CustomSettingsIcon.OnGUI())
+                    // Padded so the icon shrinks to the toolbar's other icons
+                    GUIStyle settingsStyle = new GUIStyle(EditorStyles.toolbarButton)
+                    {
+                        padding = new RectOffset(6, 6, 4, 4),
+                        imagePosition = ImagePosition.ImageOnly
+                    };
+                    if (GUILayout.Button(new GUIContent(Utils.SettingsIcon, "Settings"), settingsStyle, GUILayout.Width(ThinSmallButtonWidth)))
                     {
                         ShowUploadProfileMenu();
                     }
 
-                    BuildUploaderWindow.DrawUpdateButton(GUI.skin.button, GUILayout.Height(20));
+                    BuildUploaderWindow.DrawUpdateButton(EditorStyles.toolbarButton);
                 }
 
                 if (m_currentUploadProfile == null)
@@ -120,6 +130,20 @@ namespace Wireframe
             }
         }
 
+        /// <summary>
+        /// The bold label at the start of the Upload Profile and Upload Configs rows. They share a width so their
+        /// dropdowns line up.
+        /// </summary>
+        private static void DrawThinRowLabel(GUIContent label)
+        {
+            GUILayout.Label(label, EditorStyles.boldLabel, GUILayout.Width(GetThinRowLabelWidth()));
+        }
+
+        private static float GetThinRowLabelWidth()
+        {
+            return Mathf.Max(EditorStyles.boldLabel.CalcSize(ThinUploadProfileLabel).x, EditorStyles.boldLabel.CalcSize(ThinUploadConfigsLabel).x);
+        }
+
         private void ApplyThinTabSelection()
         {
             List<UploadConfig> uploadConfigs = m_currentUploadProfile.UploadConfigs;
@@ -157,14 +181,16 @@ namespace Wireframe
             {
                 tabs[i] = GetThinTabContent(i, uploadConfigs[i]);
             }
-            tabs[uploadConfigs.Count] = new GUIContent("Actions", "Actions that run for the whole Upload Profile");
+            tabs[uploadConfigs.Count] = new GUIContent($"Task Actions ({m_currentUploadProfile.Actions.Count})", "Actions that run for the whole Upload Profile");
 
             using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
             {
+                DrawThinRowLabel(ThinUploadConfigsLabel);
+
                 Vector2 iconSize = EditorGUIUtility.GetIconSize();
                 EditorGUIUtility.SetIconSize(new Vector2(12, 12));
 
-                float tabsWidth = ThinSmallButtonWidth;
+                float tabsWidth = ThinSmallButtonWidth + GetThinRowLabelWidth();
                 foreach (GUIContent tab in tabs)
                 {
                     tabsWidth += EditorStyles.toolbarButton.CalcSize(tab).x;
@@ -292,14 +318,14 @@ namespace Wireframe
                 {
                     using (new GUILayout.HorizontalScope())
                     {
-                        if (CustomSettingsIcon.OnGUI())
-                        {
-                            ShowActionMenu(title, actions, actionData);
-                        }
-
                         if (CustomFoldoutButton.OnGUI(actionData.Collapsed))
                         {
                             actionData.Collapsed = !actionData.Collapsed;
+                        }
+
+                        if (CustomSettingsIcon.OnGUI())
+                        {
+                            ShowActionMenu(title, actions, actionData);
                         }
 
                         using (new EditorGUI.DisabledScope(disabled))
@@ -308,42 +334,45 @@ namespace Wireframe
                         }
                     }
 
-                    using (new GUILayout.HorizontalScope())
+                    using (new UploadConfig.ThinEntryIndentScope(UploadConfig.ThinEntryIndent))
                     {
-                        var status = (UploadConfig.UploadActionData.UploadCompleteStatus)EditorGUILayout.EnumPopup(actionData.WhenToExecute, GUILayout.Width(100));
-                        if (status != actionData.WhenToExecute)
+                        using (new GUILayout.HorizontalScope())
                         {
-                            actionData.WhenToExecute = status;
-                            m_isDirty = true;
+                            var status = (UploadConfig.UploadActionData.UploadCompleteStatus)EditorGUILayout.EnumPopup(actionData.WhenToExecute, GUILayout.Width(100));
+                            if (status != actionData.WhenToExecute)
+                            {
+                                actionData.WhenToExecute = status;
+                                m_isDirty = true;
+                            }
+
+                            EditorUtils.DrawEnumPopup(actionData.Triggers, "Choose Triggers",
+                                (newTriggers) =>
+                                {
+                                    actionData.Triggers = newTriggers;
+                                    m_isDirty = true;
+                                }, GUILayout.MinWidth(80), GUILayout.ExpandWidth(true));
                         }
 
-                        EditorUtils.DrawEnumPopup(actionData.Triggers, "Choose Triggers",
-                            (newTriggers) =>
-                            {
-                                actionData.Triggers = newTriggers;
-                                m_isDirty = true;
-                            }, GUILayout.MinWidth(80), GUILayout.ExpandWidth(true));
-                    }
+                        m_isDirty |= UploadConfig.DrawStopTaskIfFailedToggle(actionData);
 
-                    m_isDirty |= UploadConfig.DrawStopTaskIfFailedToggle(actionData);
-
-                    if (actionData.ActionType != null && actionData.UploadAction != null)
-                    {
-                        using (new EditorGUI.DisabledScope(disabled))
+                        if (actionData.ActionType != null && actionData.UploadAction != null)
                         {
-                            if (actionData.Collapsed)
+                            using (new EditorGUI.DisabledScope(disabled))
                             {
-                                using (new GUILayout.HorizontalScope())
+                                if (actionData.Collapsed)
                                 {
-                                    float maxWidth = UploaderWindow.position.width - ThinContentPadding;
-                                    actionData.UploadAction.OnGUICollapsed(ref m_isDirty, maxWidth);
+                                    using (new GUILayout.HorizontalScope())
+                                    {
+                                        float maxWidth = UploaderWindow.position.width - ThinContentPadding - UploadConfig.ThinEntryIndent;
+                                        actionData.UploadAction.OnGUICollapsed(ref m_isDirty, maxWidth);
+                                    }
                                 }
-                            }
-                            else
-                            {
-                                using (new EditorGUILayout.VerticalScope())
+                                else
                                 {
-                                    actionData.UploadAction.OnGUIExpanded(ref m_isDirty);
+                                    using (new EditorGUILayout.VerticalScope())
+                                    {
+                                        actionData.UploadAction.OnGUIExpanded(ref m_isDirty);
+                                    }
                                 }
                             }
                         }

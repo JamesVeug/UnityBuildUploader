@@ -131,10 +131,15 @@ namespace Wireframe
 
         private void DrawSaveButton(params GUILayoutOption[] options)
         {
+            DrawSaveButton(GUI.skin.button, options);
+        }
+
+        private void DrawSaveButton(GUIStyle style, params GUILayoutOption[] options)
+        {
             if (!Preferences.AutoSaveUploadConfigsAfterChanges)
             {
                 string text = m_isDirty ? "*Save" : "Save";
-                if (GUILayout.Button(text, options))
+                if (GUILayout.Button(text, style, options))
                 {
                     Save();
                 }

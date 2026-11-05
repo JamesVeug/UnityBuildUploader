@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 namespace Wireframe
@@ -26,6 +27,20 @@ namespace Wireframe
             }
             
             isDirty |= m_reorderableList.OnGUI();
+        }
+
+        protected internal override void OnGUICollapsed(ref bool isDirty, float maxWidth, Context ctx)
+        {
+            List<string> regexes = new List<string>();
+            foreach (Selection selection in m_fileRegexes)
+            {
+                if (selection.Enabled && !string.IsNullOrEmpty(selection.Regex))
+                {
+                    regexes.Add(selection.Regex);
+                }
+            }
+
+            DrawCollapsedLabel(regexes.Count > 0 ? string.Join(", ", regexes) : "Nothing excluded", maxWidth);
         }
     }
 }
