@@ -61,7 +61,7 @@ namespace Wireframe.UnitTest
 
                 var destination = new SteamUploadDestination(appId, "none", depotId);
                 destination.SetDescriptionFormat("Build Uploader UploadTask preview");
-                destination.SetPreviewUpload(true);
+                destination.SetDryRun(true);
                 var errors = new List<UnityEngine.GUIContent>();
                 destination.TryGetErrors(errors);
                 Assert.IsEmpty(errors, "Steam preview destination is not ready: " +
