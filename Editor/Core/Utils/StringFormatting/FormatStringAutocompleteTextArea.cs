@@ -19,6 +19,10 @@ namespace Wireframe
         private const float RowHeight = 18f;
         private const float Padding = 3f;
 
+        private static FieldInfo s_recycledEditorField;
+        private static PropertyInfo s_recycledEditorProperty;
+        private static bool s_recycledEditorLookedUp;
+
         private readonly string m_controlName;
 
         private List<Command> m_suggestions = new List<Command>();
@@ -29,6 +33,7 @@ namespace Wireframe
         private Rect m_dropdownScreenRect;
         private Rect m_dropdownTopLevelRect;
         private bool m_swallowMouseUp;
+        private bool m_swallowSubmitCharacter;
         private EditorWindow m_ownerWindow;
 
         private bool IsOpen => m_anchorIndex >= 0 && m_suggestions.Count > 0;
@@ -172,14 +177,29 @@ namespace Wireframe
             }
         }
 
+        /// <summary>
+        /// IMGUI sends Enter and Tab as two KeyDown events: one with the keyCode, then one with only
+        /// the character. Picking a suggestion uses the first, so the second is swallowed too, or the
+        /// field reads it as Enter/Tab and ends editing, drops focus or inserts a newline.
+        /// </summary>
         private void HandleNavigationKeys()
         {
+            Event e = Event.current;
+            if (m_swallowSubmitCharacter && e.type == EventType.KeyDown)
+            {
+                m_swallowSubmitCharacter = false;
+                if (e.keyCode == KeyCode.None && IsSubmitCharacter(e.character))
+                {
+                    e.Use();
+                    return;
+                }
+            }
+
             if (!IsOpen || GUI.GetNameOfFocusedControl() != m_controlName)
             {
                 return;
             }
 
-            Event e = Event.current;
             if (e.type != EventType.KeyDown)
             {
                 return;
@@ -199,6 +219,7 @@ namespace Wireframe
                 case KeyCode.KeypadEnter:
                 case KeyCode.Tab:
                     m_pendingSelection = m_suggestions[m_selectedIndex];
+                    m_swallowSubmitCharacter = true;
                     e.Use();
                     break;
                 case KeyCode.Escape:
@@ -306,6 +327,11 @@ namespace Wireframe
             m_dropdownScreenRect = new Rect(screenPos.x, screenPos.y, width, height);
         }
 
+        private static bool IsSubmitCharacter(char c)
+        {
+            return c == '\n' || c == '\r' || c == (char)3 || c == '\t';
+        }
+
         private static int FindTokenAnchor(string text, int cursor)
         {
             int i = cursor - 1;
@@ -322,17 +348,28 @@ namespace Wireframe
             return -1;
         }
 
-        private static FieldInfo s_recycledEditorField;
-
-        private static TextEditor GetActiveTextEditor()
+        /// <summary>
+        /// EditorGUI.s_RecycledEditor is a field in older editors and a property in Unity 6.
+        /// </summary>
+        internal static TextEditor GetActiveTextEditor()
         {
-            if (s_recycledEditorField == null)
+            if (!s_recycledEditorLookedUp)
             {
-                s_recycledEditorField = typeof(EditorGUI).GetField("s_RecycledEditor",
-                    BindingFlags.Static | BindingFlags.NonPublic);
+                s_recycledEditorLookedUp = true;
+                const BindingFlags flags = BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public;
+                s_recycledEditorField = typeof(EditorGUI).GetField("s_RecycledEditor", flags);
+                if (s_recycledEditorField == null)
+                {
+                    s_recycledEditorProperty = typeof(EditorGUI).GetProperty("s_RecycledEditor", flags);
+                }
             }
 
-            return s_recycledEditorField?.GetValue(null) as TextEditor;
+            if (s_recycledEditorField != null)
+            {
+                return s_recycledEditorField.GetValue(null) as TextEditor;
+            }
+
+            return s_recycledEditorProperty?.GetValue(null, null) as TextEditor;
         }
 
         private string InsertSelection(string text, Command command)
@@ -350,7 +387,8 @@ namespace Wireframe
                 editor.selectIndex = newCursor;
             }
 
-            GUI.FocusControl(m_controlName);
+            // No GUI.FocusControl here: a selection is applied during the event that picked it, which
+            // is already used, and the name lookup fails then, so it set focus to nothing.
             return result;
         }
 
