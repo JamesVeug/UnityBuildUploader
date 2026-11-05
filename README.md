@@ -81,9 +81,17 @@ public static async Task StartTask2()
 
 #### Batch mode
 
-`"C:\Program Files\Unity\Hub\Editor\<Unity Version>\Editor\Unity.exe" -quit -nographics -batchmode -logFile logs.log -projectPath  "<Path To Your Unity Project>" -executeMethod Wireframe.BatchModeUtil.Execute 41cf5e`
+`"C:\Program Files\Unity\Hub\Editor\<Unity Version>\Editor\Unity.exe" -quit -nographics -batchmode -logFile logs.log -projectPath  "<Path To Your Unity Project>" -executeMethod Wireframe.BatchModeUtil.Execute -uploadProfile 41cf5e`
 
-Replace `41cf5e` with the `GUID or `Name` of your Upload Profile
+Replace `41cf5e` with the `GUID or `Name` of your Upload Profile. Repeat `-uploadProfile` to run several.
+
+Optional arguments:
+- `-dryRun` makes local changes but nothing leaves the local PC (eg: Steam does a preview upload)
+- `-uploadDescription "Nightly build"` sets the upload description
+- `-uploadReportFile "Logs/UploadReport.txt"` writes each task's report to a file
+- `-async` starts the tasks without waiting for them
+
+Unity exits with 1 when a profile isn't found or a task fails.
 
 #### **Unity's command CLI**
 

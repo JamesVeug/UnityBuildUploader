@@ -9,14 +9,24 @@ The code on `develop` and the planned design differ. Check which one you are cha
 
 ```
 "PATH/TO/Unity" -batchmode -quit -projectPath "PATH/TO/PROJECT" -logFile - \
-    -executeMethod Wireframe.BatchModeUtil.Execute -uploadProfile "PROFILE_GUID_OR_NAME" [-async]
+    -executeMethod Wireframe.BatchModeUtil.Execute -uploadProfile "PROFILE_GUID_OR_NAME" \
+    [-dryRun] [-uploadDescription "TEXT"] [-uploadReportFile "PATH"] [-async]
 ```
 
 - Each `-uploadProfile <GUID or name>` pair starts one `UploadTask(profile)`; repeat the pair for more.
+  Without any `-uploadProfile`, every other argument is tried as a profile and the ones that aren't are skipped
+  (the README's older form, `-executeMethod Wireframe.BatchModeUtil.Execute 41cf5e`).
+- A `-uploadProfile` that isn't found starts nothing, so a typo never runs the other profiles.
+- `-dryRun` calls `UploadTask.SetDryRun(true)`, `-uploadDescription` calls `SetBuildDescription`, and
+  `-uploadReportFile` deletes the file, then appends each task's `GetReport(true)` when it completes (and the
+  error when nothing starts).
 - Blocks with `task.StartAndBlock()` unless `-async` is passed. Blocking deliberately reuses
   `StartAndBlock`: `StartAsync` awaits `Task.Yield()` and posts continuations to the main thread, so a
   home-grown wait loop can deadlock.
-- Logs an error if no task started. It does **not** set a process exit code on failure.
+- In batch mode it calls `EditorApplication.Exit(1)` when a profile isn't found, no task starts or, without
+  `-async`, a task fails. On success it returns and `-quit` exits with 0.
+- `Arguments.Parse`, `CreateTasks` and the report file are covered by `BatchModeUtilTests`; the blocking run and
+  the exit code are not (see `UnitTest/UntestedFixes.md`).
 
 ### Unity Pipeline CLI — `Editor/Integrations/UnityPipeline/`
 
