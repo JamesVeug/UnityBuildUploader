@@ -15,6 +15,11 @@ namespace Wireframe
     {
         internal static readonly string UploadProfilePath =  Application.dataPath + "/../BuildUploader/UploadProfiles";
         internal static string UploadReportSaveDirectory => Path.Combine(Preferences.CacheFolderPath, "Upload Task Reports");
+        private static readonly GUIContent DryRunContent = new GUIContent("Dry Run",
+            "Run All makes local changes but nothing will leave this PC." +
+            "\nSources and modifiers run as normal so builds are still made. Destinations and actions with their own dry run " +
+            "(eg: Steam's Preview Upload) only check the upload with their service, local ones (eg: Local Path) run as normal " +
+            "and the rest are skipped.");
 
         public override string TabName => "Upload";
         
@@ -28,6 +33,7 @@ namespace Wireframe
         private string m_buildDescription;
         private bool m_showFormattedDescription = Preferences.DefaultShowFormattedTextToggle;
         private bool m_isDirty;
+        private bool m_dryRun;
         private Vector2 m_descriptionScrollPosition;
 
         public override void Initialize(BuildUploaderWindow uploaderWindow)
@@ -330,15 +336,24 @@ namespace Wireframe
                         EditorGUILayout.HelpBox(reason, MessageType.Error);
                     }
 
+                    string runAllText = m_dryRun ? "Dry Run All" : "Run All";
+                    Rect buttonRect = GUILayoutUtility.GetRect(new GUIContent(runAllText), GUI.skin.button, GUILayout.Height(height));
+                    Rect dryRunRect = GetDryRunToggleRect(buttonRect);
+
+                    // Takes the click before the button so pressing the toggle doesn't also run all
+                    HandleDryRunToggleClick(dryRunRect);
+
                     // Also disabled while the description autocomplete dropdown is open so the
                     // button (which sits beneath the dropdown) doesn't show hover / press state.
                     using (new EditorGUI.DisabledScope(!canUpload || FormatStringFieldDropdowns.IsDropdownOpen))
                     {
-                        if (GUILayout.Button("Run All", GUILayout.Height(height)))
+                        if (GUI.Button(buttonRect, runAllText))
                         {
+                            string dryRunText = m_dryRun ? "\n\nDry run: local changes are made but nothing will leave this PC." : "";
                             if (EditorUtility.DisplayDialog(
-                                "Run All",
+                                runAllText,
                                 "Are you sure you want to run all enabled builds using their configured destinations?" +
+                                dryRunText +
                                 "\n\nNOTE: You cannot cancel this operation once started!",
                                 "Yes", "Cancel"))
                             {
@@ -353,8 +368,45 @@ namespace Wireframe
                             }
                         }
                     }
+
+                    DrawDryRunToggle(dryRunRect);
                 }
             }
+        }
+
+        /// <summary>
+        /// The Dry Run toggle sits in the Run All button's bottom-right corner.
+        /// </summary>
+        private static Rect GetDryRunToggleRect(Rect buttonRect)
+        {
+            Vector2 size = EditorStyles.toggle.CalcSize(DryRunContent);
+            float inset = Mathf.Min(6, Mathf.Max(0, (buttonRect.height - size.y) / 2));
+            return new Rect(buttonRect.xMax - size.x - 8, buttonRect.yMax - size.y - inset, size.x, size.y);
+        }
+
+        private void HandleDryRunToggleClick(Rect rect)
+        {
+            Event current = Event.current;
+            if (current.type == EventType.MouseDown && current.button == 0 && rect.Contains(current.mousePosition))
+            {
+                m_dryRun = !m_dryRun;
+                current.Use();
+                UploaderWindow.Repaint();
+            }
+        }
+
+        /// <summary>
+        /// Drawn after the button so it shows on top of it. HandleDryRunToggleClick handles its input.
+        /// </summary>
+        private void DrawDryRunToggle(Rect rect)
+        {
+            Event current = Event.current;
+            if (current.type == EventType.Repaint)
+            {
+                EditorStyles.toggle.Draw(rect, DryRunContent, rect.Contains(current.mousePosition), false, m_dryRun, false);
+            }
+
+            GUI.Label(rect, new GUIContent("", DryRunContent.tooltip), GUIStyle.none);
         }
 
         /// <param name="fieldOnOwnRow">Puts the folded description's text field under its label instead of beside it</param>
@@ -598,6 +650,7 @@ namespace Wireframe
             }
 
             uploadTask.SetBuildDescription(description);
+            uploadTask.SetDryRun(m_dryRun);
             uploadTask.StartedFromWindow = true;
             ShowResultWhenComplete(uploadTask);
             UploadTask.AllTasks.Add(uploadTask);
