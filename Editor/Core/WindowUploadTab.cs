@@ -13,6 +13,8 @@ namespace Wireframe
 {
     internal partial class WindowUploadTab : WindowTab
     {
+        private const string DryRunPrefKey = "BuildUploader.DryRun";
+
         internal static readonly string UploadProfilePath =  Application.dataPath + "/../BuildUploader/UploadProfiles";
         internal static string UploadReportSaveDirectory => Path.Combine(Preferences.CacheFolderPath, "Upload Task Reports");
         private static readonly GUIContent DryRunContent = new GUIContent("Dry Run",
@@ -45,6 +47,7 @@ namespace Wireframe
             m_context.AddCommand(Context.TASK_DESCRIPTION_KEY, () => m_context.FormatString(m_buildDescription));
             
             m_buildDescription = Preferences.DefaultDescriptionFormat;
+            m_dryRun = ProjectEditorPrefs.GetBool(DryRunPrefKey);
         }
 
         private void Setup()
@@ -395,6 +398,7 @@ namespace Wireframe
             if (current.type == EventType.MouseDown && current.button == 0 && rect.Contains(current.mousePosition))
             {
                 m_dryRun = !m_dryRun;
+                ProjectEditorPrefs.SetBool(DryRunPrefKey, m_dryRun);
                 current.Use();
                 UploaderWindow.Repaint();
             }
