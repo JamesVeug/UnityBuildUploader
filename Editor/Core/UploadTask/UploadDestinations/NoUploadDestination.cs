@@ -13,6 +13,11 @@ namespace Wireframe
     [UploadDestination("Nowhere")]
     public class NoUploadDestination : AUploadDestination
     {
+        /// <summary>
+        /// Moves nothing, so a dry run runs it as normal
+        /// </summary>
+        public override bool SkippedDuringDryRun => false;
+
         public NoUploadDestination() : base()
         {
             // Required for reflection

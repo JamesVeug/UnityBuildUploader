@@ -28,6 +28,11 @@ namespace Wireframe
 
         public override bool DefaultStopTaskIfFailed => true;
 
+        /// <summary>
+        /// Only builds content on this machine, so a dry run runs it as normal
+        /// </summary>
+        public override bool SkippedDuringDryRun => false;
+
         public bool Clean
         {
             get => m_Clean;

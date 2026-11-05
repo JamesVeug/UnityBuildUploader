@@ -9,6 +9,11 @@ namespace Wireframe
     [UploadDestination("Itchio")]
     public partial class ItchioDestination : AUploadDestination
     {
+        /// <summary>
+        /// A dry run runs Butler's validation and upload calculation, but uploads nothing
+        /// </summary>
+        public override bool SkippedDuringDryRun => false;
+        
         [Wiki("User", "Account that owns owns the game.")]
         private ItchioUser m_user;
         
@@ -20,9 +25,6 @@ namespace Wireframe
         
         [Wiki("Description Format", "What description to appear on Itchio attached to the build. Typically short and listed as the version eg: 'v1.0.0'")]
         private string m_descriptionFormat = Context.TASK_DESCRIPTION_KEY;
-
-        [Wiki("Dry Run", "Run Butler's validation and upload calculation without publishing a build.")]
-        private bool m_dryRun;
 
         public ItchioDestination() : base()
         {
@@ -59,11 +61,6 @@ namespace Wireframe
         public void SetDescriptionFormat(string format)
         {
             m_descriptionFormat = format;
-        }
-
-        public void SetDryRun(bool dryRun)
-        {
-            m_dryRun = dryRun;
         }
 
         public override async Task<bool> Upload(UploadTaskReport.StepResult result)

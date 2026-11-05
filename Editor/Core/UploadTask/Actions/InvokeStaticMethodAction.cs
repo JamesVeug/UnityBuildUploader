@@ -37,6 +37,12 @@ namespace Wireframe
 
         public override bool DefaultStopTaskIfFailed => true;
 
+        /// <summary>
+        /// Runs a method from this project on this machine, so a dry run runs it as normal.
+        /// The method itself must not send anything off this machine during a dry run.
+        /// </summary>
+        public override bool SkippedDuringDryRun => false;
+
         public string MethodPath
         {
             get => m_MethodPath;

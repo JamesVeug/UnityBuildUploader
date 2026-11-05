@@ -16,6 +16,12 @@ namespace Wireframe
     [UploadDestination("Steamworks")]
     public partial class SteamUploadDestination : AUploadDestination
     {
+        /// <summary>
+        /// A dry run is a Preview Upload: SteamCMD logs in and checks the build, but uploads nothing.
+        /// The preview setting is written to the app file Build Uploader creates, so without Create AppFile a dry run skips Steam.
+        /// </summary>
+        public override bool SkippedDuringDryRun => !m_createAppFile;
+        
         [Wiki("App", "Which Steam App to upload to. eg: 1141030", 1)]
         private SteamApp m_app;
         
@@ -36,9 +42,6 @@ namespace Wireframe
 
         [Wiki("Description Format", "What description to upload to steam to appear on steamworks.", 9)]
         private string m_descriptionFormat = Context.TASK_DESCRIPTION_KEY;
-
-        [Wiki("Preview Upload", "Ask SteamCMD to validate and process the build without committing its content.", 10)]
-        private bool m_previewUpload;
         
         private SteamApp m_uploadApp;
         private List<SteamDepot> m_uploadDepots = new List<SteamDepot>();
@@ -99,11 +102,6 @@ namespace Wireframe
             m_descriptionFormat = format;
         }
 
-        public void SetPreviewUpload(bool previewUpload)
-        {
-            m_previewUpload = previewUpload;
-        }
-
         public override async Task<bool> Prepare(string taskGUID, int configIndex, int destinationIndex,
             string taskContentsFolder, UploadTaskReport.StepResult result)
         {
@@ -134,7 +132,7 @@ namespace Wireframe
             {
                 result.AddLog("Creating new app file: " + m_appPath);
                 m_uploadApp = new SteamApp(m_app);
-                m_uploadApp.App.preview = m_previewUpload;
+                m_uploadApp.App.preview = m_dryRun;
                 m_uploadBranch = new SteamBranch(m_destinationBranch);
                 m_uploadDepots = m_depots.Select(a=>new SteamDepot(a)).ToList();
                 
@@ -327,7 +325,7 @@ namespace Wireframe
                 ["depotIDs"] = m_depots.Select(a=>a.ID).ToArray(),
                 ["branchID"] = m_destinationBranch?.Id,
                 ["m_descriptionFormat"] = m_descriptionFormat,
-                ["m_previewUpload"] = m_previewUpload
+                ["m_previewUpload"] = m_dryRun
             };
 
             return data;
@@ -335,7 +333,7 @@ namespace Wireframe
 
         public override void Deserialize(Dictionary<string, object> data)
         {
-            m_previewUpload = data.TryGetValue("m_previewUpload", out object previewValue) && previewValue is bool preview && preview;
+            m_dryRun = data.TryGetValue("m_previewUpload", out object previewValue) && previewValue is bool preview && preview;
             m_createAppFile = (bool)data["m_createAppFile"];
             if (data.TryGetValue("m_appFileName", out object appFileNameObj) && appFileNameObj != null)
             {
@@ -441,7 +439,7 @@ namespace Wireframe
         {
             base.TryGetErrors(errors);
 
-            if (m_previewUpload && !m_createAppFile)
+            if (m_dryRun && !m_createAppFile)
             {
                 errors.Add(new GUIContent("Preview upload requires Create AppFile so the preview setting can be written safely."));
             }

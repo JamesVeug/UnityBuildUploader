@@ -46,3 +46,4 @@ Last reviewed: 2026-10-19 against `develop` 181232e plus the uncommitted fixes f
 | New list entries never reuse an Id still in use; copies keep their Id; same-named depots get distinct popup labels (#115) | `SteamDepotTests.NewListItemsNeverReuseAnIdStillInUse`, `...CopiesKeepTheirIds`, `...PopupLabelsTellSameNamedDepotsApart`, `...AppReportsDepotsThatBlockUploads`, `...AppWarnsAboutSameNamedDepots` |
 | Depot ID starts unset, can be cleared, and a missing or repeated ID blocks the upload (#116) | `SteamDepotTests.NewDepotsStartWithoutADepotId`, `...DepotIdFieldCanBeClearedAndIgnoresJunk`, `...DestinationBlocksMissingAndRepeatedDepotIds` |
 | Skip Number Updates leaves `ProjectSettings.json` untouched (#109) | `ProjectSettingsTests.*` |
+| A resumed dry run forces dry run on again for destinations and actions that don't save their Dry Run setting | `UploadTaskResumeTests.ResumedDryRunForcesDryRunWhereItIsNotSaved` |

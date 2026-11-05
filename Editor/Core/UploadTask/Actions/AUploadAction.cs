@@ -14,11 +14,27 @@ namespace Wireframe
         public Context Context => m_context;
         protected Context m_context;
 
+        [Wiki("Dry Run", "Check the action without sending anything: what is checked depends on the action. " +
+                         "Upload Tasks started as a dry run turn this on. A dry run upload will make local changes but nothing will leave the local PC.", 100)]
+        protected bool m_dryRun;
+
         /// <summary>
         /// Whether "Stop task if this fails" starts on when the user picks this action.
         /// Override to return true for actions that later steps depend on, such as building content before a build.
         /// </summary>
         public virtual bool DefaultStopTaskIfFailed => false;
+
+        /// <summary>
+        /// Whether a dry run task (UploadTask.SetDryRun) skips this action. A dry run upload will make local changes but
+        /// nothing will leave the local PC, so override to return false only when that holds: either it reads DryRun and
+        /// then only checks what it would send, or it only works locally.
+        /// </summary>
+        public virtual bool SkippedDuringDryRun => true;
+
+        /// <summary>
+        /// True when this action only checks what it would send instead of sending it. See SetDryRun.
+        /// </summary>
+        public bool DryRun => m_dryRun;
 
         public AUploadAction()
         {
@@ -32,6 +48,16 @@ namespace Wireframe
             
             return context;
         }
+
+        /// <summary>
+        /// Turns the Dry Run setting on or off. Actions that a dry run doesn't skip read it while executing;
+        /// ones that only work locally ignore it. A dry run task calls it with true on its own copy of the action.
+        /// </summary>
+        public void SetDryRun(bool dryRun)
+        {
+            m_dryRun = dryRun;
+        }
+
         /// <summary>
         /// Prepare the action to ensure it's ready to execute
         /// If this returns false then Execute is not... executed.

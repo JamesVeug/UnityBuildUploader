@@ -28,6 +28,11 @@ namespace Wireframe
             [Wiki("Color", "The color of the embed in hexidecimal. This is optional.")]
             public string color;
         }
+
+        /// <summary>
+        /// A dry run writes the request to the report without sending it
+        /// </summary>
+        public override bool SkippedDuringDryRun => false;
         
         [Wiki("App", "Which App/Bot will be sending the message", 1)]
         private DiscordConfig.DiscordApp m_app;
@@ -43,9 +48,6 @@ namespace Wireframe
 
         [Wiki("Embeds", "A list of embeds to send with the message. This is optional and can be used to format the message nicely.", 5)]
         private List<Embed> m_embeds = new List<Embed>();
-
-        [Wiki("Dry Run", "Serialize and report the Discord request without sending it.", 6)]
-        private bool m_dryRun;
 
         public DiscordMessageChannelAction() : base()
         {
@@ -76,11 +78,6 @@ namespace Wireframe
         public void SetText(string text)
         {
             m_text = text;
-        }
-
-        public void SetDryRun(bool dryRun)
-        {
-            m_dryRun = dryRun;
         }
 
         public void AddEmbed(string title, string description, Color color)

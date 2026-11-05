@@ -261,4 +261,133 @@ namespace Wireframe.UnitTest
             Folder = data != null && data.TryGetValue("folder", out object folder) ? folder as string ?? "" : "";
         }
     }
+
+    /// <summary>
+    /// Destination that reads its Dry Run setting and saves it like a real destination. Records the setting it uploaded with.
+    /// </summary>
+    public class UnitTestDryRunDestination : AUploadDestination
+    {
+        public int UploadCount { get; private set; }
+        public bool UploadedAsDryRun { get; private set; }
+
+        public override bool SkippedDuringDryRun => false;
+
+        public override Task<bool> Upload(UploadTaskReport.StepResult stepResult)
+        {
+            UploadCount++;
+            UploadedAsDryRun = m_dryRun;
+            return Task.FromResult(true);
+        }
+
+        public override string Summary() => "Has a dry run";
+        protected internal override void OnGUICollapsed(ref bool isDirty, float maxWidth) { }
+        protected internal override void OnGUIExpanded(ref bool isDirty) { }
+        public override Dictionary<string, object> Serialize() => new Dictionary<string, object> { ["dryRun"] = m_dryRun };
+
+        public override void Deserialize(Dictionary<string, object> data)
+        {
+            m_dryRun = data != null && data.TryGetValue("dryRun", out object dryRun) && dryRun is bool value && value;
+        }
+    }
+
+    /// <summary>Destination without a dry run that counts its uploads.</summary>
+    public class UnitTestRecordingDestination : AUploadDestination
+    {
+        public int UploadCount { get; private set; }
+        public int CleanUpCount { get; private set; }
+
+        public override Task<bool> Upload(UploadTaskReport.StepResult stepResult)
+        {
+            UploadCount++;
+            return Task.FromResult(true);
+        }
+
+        public override Task CleanUp(UploadTaskReport.StepResult stepResult)
+        {
+            CleanUpCount++;
+            return Task.CompletedTask;
+        }
+
+        public override string Summary() => "Has no dry run";
+        protected internal override void OnGUICollapsed(ref bool isDirty, float maxWidth) { }
+        protected internal override void OnGUIExpanded(ref bool isDirty) { }
+        public override Dictionary<string, object> Serialize() => new Dictionary<string, object>();
+        public override void Deserialize(Dictionary<string, object> data) { }
+    }
+
+    /// <summary>
+    /// Action that reads its Dry Run setting and saves it like a real action. Records the setting it executed with.
+    /// </summary>
+    public class UnitTestDryRunAction : AUploadAction
+    {
+        public int ExecuteCount { get; private set; }
+        public bool ExecutedAsDryRun { get; private set; }
+
+        public override bool SkippedDuringDryRun => false;
+
+        public override Task<bool> Execute(UploadTaskReport.StepResult stepResult)
+        {
+            ExecuteCount++;
+            ExecutedAsDryRun = m_dryRun;
+            return Task.FromResult(true);
+        }
+
+        public override void OnGUICollapsed(ref bool isDirty, float maxWidth) { }
+        public override void OnGUIExpanded(ref bool isDirty) { }
+        public override Dictionary<string, object> Serialize() => new Dictionary<string, object> { ["dryRun"] = m_dryRun };
+
+        public override void Deserialize(Dictionary<string, object> data)
+        {
+            m_dryRun = data != null && data.TryGetValue("dryRun", out object dryRun) && dryRun is bool value && value;
+        }
+    }
+
+    /// <summary>
+    /// Destination that reads its Dry Run setting but doesn't save it, so only the task can keep it on through a reload.
+    /// Records the setting it uploaded with.
+    /// </summary>
+    public class UnitTestUnsavedDryRunDestination : AUploadDestination
+    {
+        public int UploadCount { get; private set; }
+        public bool UploadedAsDryRun { get; private set; }
+
+        public override bool SkippedDuringDryRun => false;
+
+        public override Task<bool> Upload(UploadTaskReport.StepResult stepResult)
+        {
+            UploadCount++;
+            UploadedAsDryRun = m_dryRun;
+            return Task.FromResult(true);
+        }
+
+        public override string Summary() => "Has a dry run it doesn't save";
+        protected internal override void OnGUICollapsed(ref bool isDirty, float maxWidth) { }
+        protected internal override void OnGUIExpanded(ref bool isDirty) { }
+        public override Dictionary<string, object> Serialize() => new Dictionary<string, object>();
+        public override void Deserialize(Dictionary<string, object> data) { }
+    }
+
+    /// <summary>
+    /// Action that reads its Dry Run setting but doesn't save it, so only the task can keep it on through a reload.
+    /// Records the setting it executed with.
+    /// </summary>
+    public class UnitTestUnsavedDryRunAction : AUploadAction
+    {
+        public int ExecuteCount { get; private set; }
+        public bool ExecutedAsDryRun { get; private set; }
+
+        public override bool SkippedDuringDryRun => false;
+
+        public override Task<bool> Execute(UploadTaskReport.StepResult stepResult)
+        {
+            ExecuteCount++;
+            ExecutedAsDryRun = m_dryRun;
+            return Task.FromResult(true);
+        }
+
+        public override void OnGUICollapsed(ref bool isDirty, float maxWidth) { }
+        public override void OnGUIExpanded(ref bool isDirty) { }
+        public override Dictionary<string, object> Serialize() => new Dictionary<string, object>();
+        public override void Deserialize(Dictionary<string, object> data) { }
+    }
 }

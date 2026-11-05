@@ -139,6 +139,7 @@ namespace Wireframe
                 ["guid"] = m_guid,
                 ["name"] = m_uploadName,
                 ["description"] = m_uploadDescription,
+                ["dryRun"] = DryRun,
                 ["startedFromWindow"] = StartedFromWindow,
                 ["nextStep"] = m_checkpointStep.ToString(),
                 ["stepPhase"] = m_checkpointPhase.ToString(),
@@ -196,6 +197,7 @@ namespace Wireframe
             UploadTask task = new UploadTask((string)data["name"], configs, actions);
             task.m_guid = (string)data["guid"];
             task.m_uploadDescription = data["description"] as string ?? "";
+            task.DryRun = data.TryGetValue("dryRun", out object dryRun) && dryRun is bool isDryRun && isDryRun; // Missing before dry runs
             task.StartedFromWindow = (bool)data["startedFromWindow"];
             task.m_checkpointFolder = checkpointFolder;
             task.m_report = UploadTaskReport.Deserialize((Dictionary<string, object>)data["report"]);
@@ -213,6 +215,11 @@ namespace Wireframe
             }
 
             task.RestoreState(data);
+            if (task.DryRun)
+            {
+                task.ReapplyDryRun();
+            }
+
             return task;
         }
 

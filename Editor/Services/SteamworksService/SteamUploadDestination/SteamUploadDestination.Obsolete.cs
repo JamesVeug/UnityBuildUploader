@@ -11,5 +11,11 @@ namespace Wireframe
             AddSteamDepot(depotID);
             SetSteamBranch(branchName);
         }
+
+        [Obsolete("Use SetDryRun(bool dryRun) instead.")]
+        public void SetPreviewUpload(bool previewUpload)
+        {
+            m_dryRun = previewUpload;
+        }
     }
 }

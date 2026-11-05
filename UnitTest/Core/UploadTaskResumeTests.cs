@@ -106,6 +106,60 @@ namespace Wireframe.UnitTest
         }
 
         [UnityTest]
+        public IEnumerator ResumedDryRunStaysADryRun()
+        {
+            string gated = Fixture("ResumeDryRunGated", "gated.txt", "gated");
+            var config = new UploadConfig();
+            config.AddSource(new UnitTestGateSource(gated));
+            config.AddDestination(new UnitTestDryRunDestination());
+            config.AddDestination(new UnitTestRecordingDestination());
+            var task = new UploadTask("Core resume dry run", config);
+            task.SetDryRun(true);
+
+            // A dry run runs a copy of the config, so wait on the copy's gate
+            _ = task.StartAsync(false);
+            yield return TestSupport.WaitUntil(() => Gate(task).HasEntered, Timeout, "The task did not reach the gate");
+            UploadTask resumed = Resume(Abandon(task));
+            yield return ReleaseAndFinish(resumed);
+
+            Assert.IsTrue(resumed.IsSuccessful, resumed.Report.GetReport());
+            Assert.IsTrue(resumed.DryRun, "A resumed dry run must stay a dry run.");
+            List<UploadConfig.DestinationData> destinations = resumed.UploadConfigs[0].Destinations;
+            Assert.IsTrue(((UnitTestDryRunDestination)destinations[0].Destination).UploadedAsDryRun, "The forced dry run must survive the reload.");
+            Assert.IsFalse(destinations[1].Enabled, "A destination without a dry run must stay skipped.");
+            Assert.AreEqual(0, ((UnitTestRecordingDestination)destinations[1].Destination).UploadCount);
+        }
+
+        [UnityTest]
+        public IEnumerator ResumedDryRunForcesDryRunWhereItIsNotSaved()
+        {
+            string gated = Fixture("ResumeUnsavedDryRunGated", "gated.txt", "gated");
+            var config = new UploadConfig();
+            config.AddSource(new UnitTestGateSource(gated));
+            config.AddDestination(new UnitTestUnsavedDryRunDestination());
+            config.AddPostAction(new UnitTestUnsavedDryRunAction());
+            var task = new UploadTask("Core resume unsaved dry run", config);
+            task.AddAction(new UploadConfig.UploadActionData(new UnitTestUnsavedDryRunAction(), Status.Always, Trigger.OnTaskFinished));
+            task.SetDryRun(true);
+
+            _ = task.StartAsync(false);
+            yield return TestSupport.WaitUntil(() => Gate(task).HasEntered, Timeout, "The task did not reach the gate");
+            UploadTask resumed = Resume(Abandon(task));
+            yield return ReleaseAndFinish(resumed);
+
+            Assert.IsTrue(resumed.IsSuccessful, resumed.Report.GetReport());
+            var destination = (UnitTestUnsavedDryRunDestination)resumed.UploadConfigs[0].Destinations[0].Destination;
+            Assert.AreEqual(1, destination.UploadCount);
+            Assert.IsTrue(destination.UploadedAsDryRun, "A destination that doesn't save its dry run must still upload as one after a reload.");
+            var configAction = (UnitTestUnsavedDryRunAction)resumed.UploadConfigs[0].PostActions[0].UploadAction;
+            Assert.AreEqual(1, configAction.ExecuteCount);
+            Assert.IsTrue(configAction.ExecutedAsDryRun, "A config action that doesn't save its dry run must still execute as one after a reload.");
+            var taskAction = (UnitTestUnsavedDryRunAction)resumed.Actions[0].UploadAction;
+            Assert.AreEqual(1, taskAction.ExecuteCount);
+            Assert.IsTrue(taskAction.ExecutedAsDryRun, "A task action that doesn't save its dry run must still execute as one after a reload.");
+        }
+
+        [UnityTest]
         public IEnumerator InterruptedUploadFailsThenCleansUp()
         {
             string source = Fixture("ResumeUpload", "root.txt", "root");

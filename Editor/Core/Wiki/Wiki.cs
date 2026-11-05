@@ -242,8 +242,10 @@ namespace Wireframe
 
         private static void WriteFields(Type type, StringBuilder sb, int headerIndent)
         {
+            bool skippedDuringDryRun = SkippedDuringDryRun(type);
             var fields = ReflectionUtils.GetAllFields(type)
                 .Where(a=> a.IsDefined(typeof(WikiAttribute)))
+                .Where(a=> !skippedDuringDryRun || !IsDryRunField(a))
                 .OrderBy(a=>a.Name)
                 .ToList();
             fields.Sort((a,b)=>
@@ -284,6 +286,40 @@ namespace Wireframe
                 {
                     WriteFields(field.FieldType.GenericTypeArguments[0], sb, headerIndent + 1);
                 }
+            }
+        }
+
+        /// <summary>
+        /// The Dry Run setting every destination and action inherits. The base classes have no other [Wiki] fields.
+        /// </summary>
+        private static bool IsDryRunField(FieldInfo field)
+        {
+            return field.DeclaringType == typeof(AUploadDestination) || field.DeclaringType == typeof(AUploadAction);
+        }
+
+        /// <summary>
+        /// Destinations and actions a dry run skips don't use their inherited Dry Run setting, so their pages leave it out
+        /// </summary>
+        private static bool SkippedDuringDryRun(Type type)
+        {
+            if (type.IsAbstract || (!typeof(AUploadDestination).IsAssignableFrom(type) && !typeof(AUploadAction).IsAssignableFrom(type)))
+            {
+                return false;
+            }
+
+            try
+            {
+                object instance = Activator.CreateInstance(type);
+                if (instance is AUploadDestination destination)
+                {
+                    return destination.SkippedDuringDryRun;
+                }
+
+                return ((AUploadAction)instance).SkippedDuringDryRun;
+            }
+            catch (Exception)
+            {
+                return true;
             }
         }
     }

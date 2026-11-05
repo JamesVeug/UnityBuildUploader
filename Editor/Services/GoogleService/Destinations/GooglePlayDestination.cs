@@ -19,6 +19,12 @@ namespace Wireframe
     [UploadDestination("Google Play")]
     public partial class GooglePlayDestination : AUploadDestination
     {
+        /// <summary>
+        /// A dry run opens an edit to check the credentials and package name, then deletes it.
+        /// The binary isn't uploaded and nothing is committed.
+        /// </summary>
+        public override bool SkippedDuringDryRun => false;
+        
         [Wiki("App", "Which Google App to use to upload to to (must include the androidpublisher scope).", 1)]
         private GoogleConfig.GoogleApp m_app;
 
@@ -39,10 +45,6 @@ namespace Wireframe
 
         [Wiki("Binary File Name", "When the source is a folder, the file name to upload. eg: 'game.aab'. Leave empty to auto-detect a single .aab or .apk in the source folder.", 7)]
         private string m_binaryFileName = "";
-
-        [Wiki("Dry Run", "Open an edit to check the credentials and package name, then delete it. " +
-                         "The binary is not uploaded and nothing is committed.", 8)]
-        private bool m_dryRun;
 
         public GooglePlayDestination() : base()
         {
@@ -89,11 +91,6 @@ namespace Wireframe
         public void SetBinaryFileName(string binaryFileName)
         {
             m_binaryFileName = binaryFileName;
-        }
-
-        public void SetDryRun(bool dryRun)
-        {
-            m_dryRun = dryRun;
         }
 
         public override async Task<bool> Upload(UploadTaskReport.StepResult result)

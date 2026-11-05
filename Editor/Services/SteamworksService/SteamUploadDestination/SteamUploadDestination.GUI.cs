@@ -144,7 +144,7 @@ namespace Wireframe
             using (new GUILayout.HorizontalScope())
             {
                 GUILayout.Label("Preview Upload:", GUILayout.Width(120));
-                isDirty |= CustomToggle.DrawToggle(ref m_previewUpload);
+                isDirty |= CustomToggle.DrawToggle(ref m_dryRun);
             }
             // Tools
             using (new GUILayout.HorizontalScope())

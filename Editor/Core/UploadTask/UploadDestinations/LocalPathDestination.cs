@@ -15,7 +15,12 @@ namespace Wireframe
     public partial class LocalPathDestination : AUploadDestination
     {
         public bool IsZippingContents => m_zipContent;
-        
+
+        /// <summary>
+        /// Only copies to this machine, so a dry run runs it as normal
+        /// </summary>
+        public override bool SkippedDuringDryRun => false;
+
         [Wiki("Directory", "The absolute path of the folder to copy the files to. eg: C:/MyBuilds/TodaysBuild" +
                            "\n\nSee docs for formatting options like {version} and {time} to use in the path.")]
         private string m_localPath = "";

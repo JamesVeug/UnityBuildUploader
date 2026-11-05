@@ -12,7 +12,23 @@ namespace Wireframe
     public abstract partial class AUploadDestination
     {
         public Context Context => m_context;
-        
+
+        /// <summary>
+        /// Whether a dry run task (UploadTask.SetDryRun) skips this destination. A dry run upload will make local changes but
+        /// nothing will leave the local PC, so override to return false only when that holds: either it reads DryRun and
+        /// then only checks the upload with its service, or it only works locally.
+        /// </summary>
+        public virtual bool SkippedDuringDryRun => true;
+
+        /// <summary>
+        /// True when this destination only checks the upload with its service instead of sending the build. See SetDryRun.
+        /// </summary>
+        public bool DryRun => m_dryRun;
+
+        [Wiki("Dry Run", "Check the upload with the service without sending the build: what is checked depends on the destination. " +
+            "Upload Tasks started as a dry run turn this on. A dry run upload will make local changes but nothing will leave the local PC.", 100)]
+        protected bool m_dryRun;
+
         protected Context m_context;
         protected string m_taskContentsFolder;
 
@@ -26,7 +42,7 @@ namespace Wireframe
         {
             return new Context();
         }
-        
+
         /// <summary>
         /// Returns a short summary of the different things for this that can be changed
         /// eg: LocalPathDestination: 'C:/MyBuilds/MyNewBuildFolder'
@@ -133,6 +149,15 @@ namespace Wireframe
         public virtual void TryGetErrors(List<GUIContent> errors)
         {
             
+        }
+
+        /// <summary>
+        /// Turns the Dry Run setting on or off. Destinations that a dry run doesn't skip read it while uploading;
+        /// ones that only work locally ignore it. A dry run task calls it with true on its own copy of the destination.
+        /// </summary>
+        public void SetDryRun(bool dryRun)
+        {
+            m_dryRun = dryRun;
         }
     }
 }

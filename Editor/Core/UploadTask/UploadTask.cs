@@ -162,6 +162,11 @@ namespace Wireframe
             m_completedSources.Clear();
             BuildUploaderProjectSettings.BumpUploadNumber();
 
+            if (DryRun)
+            {
+                ApplyDryRun();
+            }
+
             for (var i = 0; i < m_uploadConfigs.Count; i++)
             {
                 m_uploadConfigs[i].SetContextAndCacheCallbacks(m_context);

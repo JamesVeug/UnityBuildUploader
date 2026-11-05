@@ -79,14 +79,43 @@ two action steps. If one with `StopTaskIfFailed` fails, the remaining "no" steps
   actions still run. Picking an action in the GUI (or `new UploadActionData(action, ...)`) copies
   `AUploadAction.DefaultStopTaskIfFailed`, which actions that later steps depend on override to true.
 - Past runs appear in **Tools → Build Uploader → Open Upload Tasks Window**. There is no completion dialog
-  outside the GUI. To dry-run sources and modifiers without touching a service, use `NoUploadDestination`
-  ("Nowhere") and turn off cache deletion.
+  outside the GUI. To dry-run a whole profile, use `UploadTask.SetDryRun` (see Dry runs). To check only sources and
+  modifiers, use `NoUploadDestination` ("Nowhere") and turn off cache deletion.
 - With `Preferences.AutoSaveReportToCacheFolder` on, the report file is written when the task starts and kept up
   to date: at every checkpoint (below), every 5 s while a step logs, and at the end. One write runs at a time,
   through `<file>.tmp` then a move. The header has `In Progress: True` and `Current Step` until it finishes, then
   `End Time` and `Duration`. Files without `In Progress` (older versions) load as complete. The Upload Tasks window
   shows a running task from memory over its file, and a file left in progress as **Will resume** (a checkpoint
   exists) or **Interrupted**. `GetReport` writes a failed result even when it has no logs.
+
+## Dry runs
+
+`task.SetDryRun(true)` before starting makes the task a dry run. A dry run upload will make local changes but nothing
+will leave the local PC: builds are made and local steps run as normal, and services with their own dry run only check
+the upload (eg: Steam's Preview Upload logs in but uploads nothing).
+
+- `UploadTask.Prepare` (`UploadTask.DryRun.cs`) swaps every config and task action for a copy, round-tripped through
+  `Serialize()`, the package `JSON` and `Deserialize()` as a saved profile loads. The configs and actions the task was
+  given (the window's profile) never change. Code that held them must read `task.UploadConfigs` / `task.Actions`.
+- On the copies, each enabled destination and each action (task actions and config `PostActions`) that
+  `SkippedDuringDryRun` doesn't skip gets `SetDryRun(true)`. The others are turned off: destinations get
+  `Enabled = false`, actions `WhenToExecute = Never`. One Validation log lists which run and which were skipped.
+- `AUploadDestination` and `AUploadAction` hold the setting: `protected bool m_dryRun` with a generic `[Wiki("Dry Run")]`,
+  `public bool DryRun` and `public void SetDryRun(bool)`. A type with a dry run draws its own toggle for `m_dryRun` and
+  saves it under its own key (`dryRun`, or Steam's `m_previewUpload`, which is its Preview Upload).
+- `SkippedDuringDryRun` is virtual and defaults to true. Override it to return false only when nothing will leave the
+  local PC: the type reads `m_dryRun` and then only checks the upload (Itch, Apple, Google Play, Discord; Steam only
+  with Create AppFile), or it only works on this machine (Local Path, Nowhere, Build Addressables, Invoke Static Method).
+  Xbox overrides it to stay true, because its own Dry Run still uploads the package. A new type that sends anything
+  anywhere must keep true or read `m_dryRun`.
+- The wiki export lists the inherited Dry Run entry only on pages of types that `SkippedDuringDryRun` doesn't skip
+  (`Wiki.WriteFields`).
+- Sources and modifiers run as normal, so builds are made.
+- Checkpoints save `dryRun` and the copies, so skipped entries stay turned off. `m_dryRun` itself is only saved by
+  types whose own `Serialize` writes it, so `FromCheckpoint` calls `ReapplyDryRun`, which forces it on again for every
+  type, saved or not. Don't rely on a type saving `m_dryRun` for a resumed dry run to stay one.
+- `UploadTaskDryRunTests`, `UploadTaskResumeTests.ResumedDryRunStaysADryRun` and
+  `UploadTaskResumeTests.ResumedDryRunForcesDryRunWhereItIsNotSaved` cover it.
 
 ## Resuming after a script reload (#107)
 

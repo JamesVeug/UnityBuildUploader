@@ -11,6 +11,11 @@ namespace Wireframe
     [UploadDestination("Xbox")]
     public partial class XboxUploadDestination : AUploadDestination
     {
+        /// <summary>
+        /// Xbox's own Dry Run still uploads the package before deleting the submission, so a dry run task skips it
+        /// </summary>
+        public override bool SkippedDuringDryRun => true;
+        
         [Wiki("App", "The Xbox app entry whose credentials will be used for this submission.", 0)]
         private XboxConfig.XboxApp m_app;
 
@@ -21,10 +26,6 @@ namespace Wireframe
         [Wiki("RemoveFailedPendingSubmission", "Delete the current pending submission if there is one before creating a new submission. " +
                                       "Checks on xbox if there is a pending submission and deletes it before we start a new submission.", 3)]
         private bool m_removeFailedPendingSubmission = false;
-
-        [Wiki("Dry Run", "Create the submission and upload the package, then delete the submission instead of committing it. " +
-                         "Nothing is sent for certification.", 4)]
-        private bool m_dryRun;
 
         private string m_cachedSubmissionId = "";
 
@@ -38,11 +39,6 @@ namespace Wireframe
         public void SetApp(XboxConfig.XboxApp app)
         {
             m_app = app;
-        }
-
-        public void SetDryRun(bool dryRun)
-        {
-            m_dryRun = dryRun;
         }
 
         public override async Task<bool> Upload(UploadTaskReport.StepResult result)

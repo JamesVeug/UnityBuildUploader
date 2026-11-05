@@ -19,6 +19,11 @@ namespace Wireframe
     [UploadDestination("Apple TestFlight")]
     public partial class AppleUploadDestination : AUploadDestination
     {
+        /// <summary>
+        /// A dry run checks the API Key and App with App Store Connect, but doesn't upload the .ipa
+        /// </summary>
+        public override bool SkippedDuringDryRun => false;
+        
         [Wiki("API Key", "Which App Store Connect API Key to authenticate with.", 1)]
         private AppleConfig.AppleApiKey m_apiKey;
 
@@ -39,11 +44,6 @@ namespace Wireframe
             "How long to wait for the uploaded build to appear in App Store Connect after altool completes. " +
             "Apple's processing pipeline can take several minutes; 600 (10 minutes) is the default.", 6)]
         private int m_findBuildTimeoutSeconds = 600;
-
-        [Wiki("Dry Run",
-            "Check the API Key and App with App Store Connect without uploading the .ipa. " +
-            "altool is not run, so this also works outside macOS.", 7)]
-        private bool m_dryRun;
 
         // Captured during Upload() so the StringContextModifier can publish them as
         // {appleBuildId} / {appleBuildVersion} / {appleBuildNumber} for downstream actions.
@@ -74,11 +74,6 @@ namespace Wireframe
         public void SetBuildNumberFormat(string format)
         {
             m_buildNumberFormat = format;
-        }
-
-        public void SetDryRun(bool dryRun)
-        {
-            m_dryRun = dryRun;
         }
 
         public override string Summary()
