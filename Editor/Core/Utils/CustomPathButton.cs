@@ -52,15 +52,65 @@ namespace Wireframe
             bool warning = !Utils.PathExists(displayedPath);
             bool error = string.IsNullOrEmpty(displayedPath) || Utils.PathContainsInvalidCharacters(displayedPath);
             using(ButtonStyleScope scope = new ButtonStyleScope(warning, error)){
-                if (GUILayout.Button(displayedPath, scope.style))
+                GUIContent content = new GUIContent(displayedPath);
+                Rect rect = GUILayoutUtility.GetRect(content, scope.style);
+                Event current = Event.current;
+                if (rect.Contains(current.mousePosition))
                 {
-                    string newPath = EditorUtility.OpenFolderPanel("Select Folder to upload", displayedPath, "");
+                    if (current.type == EventType.MouseDown && current.button == 1)
+                    {
+                        ShowContextMenu(fullPath);
+                        current.Use();
+                    }
+                    else if ((current.type == EventType.MouseUp && current.button == 1) || current.type == EventType.ContextClick)
+                    {
+                        current.Use();
+                    }
+                }
+
+                if (GUI.Button(rect, content, scope.style))
+                {
+                    string newPath = EditorUtility.OpenFolderPanel("Select Folder", fullPath, "");
+                    if (string.IsNullOrEmpty(newPath))
+                    {
+                        return false;
+                    }
+
                     fullPath = newPath;
                     return true;
                 }
             }
 
             return false;
+        }
+
+        private static void ShowContextMenu(string fullPath)
+        {
+            GenericMenu menu = new GenericMenu();
+            GUIContent openLabel = new GUIContent(OpenInFileBrowserLabel());
+            if (Utils.GetClosestExistingDirectory(fullPath) != null)
+            {
+                menu.AddItem(openLabel, false, () => Utils.OpenClosestExistingDirectory(fullPath));
+            }
+            else
+            {
+                menu.AddDisabledItem(openLabel);
+            }
+
+            menu.ShowAsContext();
+        }
+
+        private static string OpenInFileBrowserLabel()
+        {
+            switch (Application.platform)
+            {
+                case RuntimePlatform.OSXEditor:
+                    return "Open in Finder";
+                case RuntimePlatform.LinuxEditor:
+                    return "Open in File Manager";
+                default:
+                    return "Open in Explorer";
+            }
         }
     }
 }

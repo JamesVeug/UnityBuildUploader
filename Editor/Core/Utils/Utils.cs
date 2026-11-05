@@ -506,7 +506,12 @@ namespace Wireframe
             
             if (GUILayout.Button(displayedPath, style))
             {
-                string newPath = EditorUtility.OpenFolderPanel("Select Folder to upload", ".", "");
+                string newPath = EditorUtility.OpenFolderPanel("Select Folder", ".", "");
+                if (string.IsNullOrEmpty(newPath))
+                {
+                    return false;
+                }
+
                 fullPath = newPath;
                 return true;
             }
@@ -517,6 +522,54 @@ namespace Wireframe
         public static bool PathExists(string path)
         {
             return !string.IsNullOrEmpty(path) && File.Exists(path) || Directory.Exists(path);
+        }
+
+        /// <summary>
+        /// The path itself if it is an existing directory, otherwise the closest parent directory that exists.
+        /// Returns null when no part of the path exists or the path is invalid.
+        /// </summary>
+        public static string GetClosestExistingDirectory(string path)
+        {
+            if (string.IsNullOrEmpty(path) || PathContainsInvalidCharacters(path))
+            {
+                return null;
+            }
+
+            try
+            {
+                string directory = Path.GetFullPath(path);
+                while (!string.IsNullOrEmpty(directory))
+                {
+                    if (Directory.Exists(directory))
+                    {
+                        return directory;
+                    }
+
+                    directory = Path.GetDirectoryName(directory);
+                }
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Opens the closest existing directory of the path in Explorer, Finder or the file manager.
+        /// Returns false when no part of the path exists.
+        /// </summary>
+        public static bool OpenClosestExistingDirectory(string path)
+        {
+            string directory = GetClosestExistingDirectory(path);
+            if (directory == null)
+            {
+                return false;
+            }
+
+            EditorUtility.OpenWithDefaultApp(directory);
+            return true;
         }
         
         public static string ToSemantic(string version)

@@ -43,7 +43,7 @@ namespace Wireframe
 
                     if (GUILayout.Button("Show", GUILayout.Width(50)))
                     {
-                        EditorUtility.RevealInFinder(ctx.FormatString(unformattedPath));
+                        Utils.OpenClosestExistingDirectory(ctx.FormatString(unformattedPath));
                     }
                 }
             }
@@ -81,7 +81,7 @@ namespace Wireframe
 
                     if (GUILayout.Button("Show", GUILayout.Width(50)))
                     {
-                        EditorUtility.RevealInFinder(typedPath);
+                        Utils.OpenClosestExistingDirectory(fullPath);
                     }
                 }
             }
