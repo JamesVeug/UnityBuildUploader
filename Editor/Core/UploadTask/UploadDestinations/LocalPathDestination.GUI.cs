@@ -12,7 +12,7 @@ namespace Wireframe
 
         protected internal override void OnGUIExpanded(ref bool isDirty)
         {
-            isDirty |= CustomFolderPathTextField.OnGUI("Select Folder to upload", ref m_localPath, ref m_showFormattedLocalPath, m_context);
+            isDirty |= CustomFolderPathTextField.OnGUI("Select Folder to save contents to", ref m_localPath, ref m_showFormattedLocalPath, m_context);
 
             using (new EditorGUILayout.HorizontalScope())
             {

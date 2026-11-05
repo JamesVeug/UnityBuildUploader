@@ -22,7 +22,7 @@ namespace Wireframe
 
         protected internal override string SelectFile()
         {
-            return EditorUtility.OpenFolderPanel("Select Folder to upload", m_enteredFilePath, "");
+            return EditorUtility.OpenFolderPanel("Select Folder to Upload", m_enteredFilePath, "");
         }
     }
 }

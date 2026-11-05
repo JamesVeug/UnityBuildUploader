@@ -33,7 +33,7 @@ namespace Wireframe
 
                     if (GUILayout.Button("...", GUILayout.Width(20)))
                     {
-                        string newPath = EditorUtility.OpenFilePanel("Select Folder to upload", unformattedPath, fileTypes);
+                        string newPath = EditorUtility.OpenFilePanel("Select Folder", unformattedPath, fileTypes);
                         if (!string.IsNullOrEmpty(newPath))
                         {
                             unformattedPath = newPath; // This is an unformatted path
