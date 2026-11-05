@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
 
@@ -13,34 +14,65 @@ namespace Wireframe
         private const string DryRunArgument = "-dryRun";
         private const string DescriptionArgument = "-uploadDescription";
         private const string ReportFileArgument = "-uploadReportFile";
+        private const string QuitArgument = "-quit";
 
         /// <summary>
         /// Executes upload tasks and uses the command line arguments to detect GUIDs
         /// Example on how to execute this command with a CLI:
-        /// "PATH/TO/UNITY/Unity.exe" -batchmode -quit -projectPath "PATH/TO/PROJECT" -executeMethod Wireframe.BatchModeUtil.Execute -uploadProfile "UPLOAD_PROFILE_GUID"
+        /// "PATH/TO/UNITY/Unity.exe" -batchmode -projectPath "PATH/TO/PROJECT" -executeMethod Wireframe.BatchModeUtil.Execute -uploadProfile "UPLOAD_PROFILE_GUID"
+        /// Don't pass -quit: Unity would quit as soon as this method returns, before the tasks run. In batch mode this
+        /// exits Unity itself once the tasks finish, with 0 when they all succeeded and 1 otherwise.
         /// Repeat -uploadProfile to run several profiles one after another. A profile can be a GUID or a name.
         /// Optional arguments:
         /// -dryRun runs each profile as a dry run (UploadTask.SetDryRun): it makes local changes but nothing leaves the local PC
         /// -uploadDescription "TEXT" sets the upload description, eg: what Steamworks shows for the build
         /// -uploadReportFile "PATH" writes each task's report to that file when it finishes
-        /// -async starts the tasks without waiting for them. If the terminal never exits then add -async and the terminal should persist until exiting but complete the task
+        /// -async starts the tasks together without waiting for them, and doesn't exit Unity when they finish
         /// In batch mode Unity exits with 1 when a profile isn't found or, without -async, when a task fails. Nothing starts if a profile isn't found.
         /// For more see: https://github.com/JamesVeug/UnityBuildUploader/wiki/Starting-a-BuildTask-without-UI
         /// </summary>
         public static void Execute()
         {
-            bool successful = Run(Arguments.Parse(Environment.GetCommandLineArgs()), FindProfile);
-            if (!successful && Application.isBatchMode)
+            string[] commandLine = Environment.GetCommandLineArgs();
+            Arguments arguments = Arguments.Parse(commandLine);
+            if (Application.isBatchMode && !arguments.Async && Array.Exists(commandLine, a => a.Equals(QuitArgument, StringComparison.OrdinalIgnoreCase)))
             {
+                string error = $"No tasks were started. Remove {QuitArgument}: Unity quits as soon as {nameof(Execute)} returns, before the tasks run. {nameof(BatchModeUtil)} exits Unity itself when they finish.";
+                Debug.LogError(error);
+                DeleteReport(arguments.ReportFile);
+                AppendReport(arguments.ReportFile, error);
                 EditorApplication.Exit(1);
+                return;
+            }
+
+            _ = ExecuteAsync(arguments);
+        }
+
+        /// <summary>
+        /// Runs the tasks without blocking the main thread, which their awaits continue on, then exits Unity in batch mode
+        /// </summary>
+        private static async Task ExecuteAsync(Arguments arguments)
+        {
+            bool successful = false;
+            try
+            {
+                successful = await RunAsync(arguments, FindProfile);
+            }
+            finally
+            {
+                if (Application.isBatchMode && (!arguments.Async || !successful))
+                {
+                    EditorApplication.Exit(successful ? 0 : 1);
+                }
             }
         }
 
         /// <summary>
         /// Starts a task for each profile. Waits for each one unless -async is passed.
         /// Returns false if a profile wasn't found, no task started, or a task it waited for failed.
+        /// Never wait for this with GetResult or Wait on the main thread: the tasks continue on it, so that deadlocks.
         /// </summary>
-        internal static bool Run(Arguments arguments, Func<string, UploadProfile> findProfile)
+        internal static async Task<bool> RunAsync(Arguments arguments, Func<string, UploadProfile> findProfile)
         {
             DeleteReport(arguments.ReportFile);
             try
@@ -66,7 +98,7 @@ namespace Wireframe
                     else
                     {
                         Debug.Log($"Starting task with guid {task.GUID} with Upload Profile: {task.UploadName}{dryRun}!");
-                        task.StartAndBlock(true);
+                        await task.StartAsync(true);
                         successful &= task.IsSuccessful;
                     }
                 }

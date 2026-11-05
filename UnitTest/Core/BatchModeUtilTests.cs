@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -150,7 +151,7 @@ namespace Wireframe.UnitTest
             });
             LogAssert.Expect(LogType.Error, "No tasks were started. No profile found with GUID or Name : Missing");
 
-            Assert.IsFalse(BatchModeUtil.Run(arguments, FindProfile));
+            Assert.IsFalse(BatchModeUtil.RunAsync(arguments, FindProfile).Result);
 
             StringAssert.Contains("No profile found with GUID or Name : Missing", File.ReadAllText(reportFile));
         }
@@ -190,6 +191,34 @@ namespace Wireframe.UnitTest
 
             StringAssert.Contains("Successful: True", written);
             StringAssert.DoesNotContain("Report from an earlier run", written);
+        }
+
+        [UnityTest]
+        public IEnumerator RunWaitsForEachTaskWithoutBlockingTheMainThread()
+        {
+            string reportFile = Path.Combine(TestSupport.OutputDirectory("BatchModeRun"), "Report.txt");
+            BatchModeUtil.Arguments arguments = BatchModeUtil.Arguments.Parse(new[]
+            {
+                "Unity.exe", "-uploadProfile", "First", "-uploadProfile", "Second", "-uploadReportFile", reportFile
+            });
+            Dictionary<string, UploadProfile> profiles = new Dictionary<string, UploadProfile>
+            {
+                { "First", LocalProfile("First") },
+                { "Second", LocalProfile("Second") },
+            };
+
+            Task<bool> run = BatchModeUtil.RunAsync(arguments, id => profiles[id]);
+            System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            while (!run.IsCompleted && stopwatch.Elapsed.TotalSeconds < Timeout)
+            {
+                yield return null;
+            }
+
+            Assert.IsTrue(run.IsCompleted, "RunAsync didn't finish. Its tasks continue on the main thread, so it must never block it.");
+            Assert.IsTrue(run.Result, File.Exists(reportFile) ? File.ReadAllText(reportFile) : "No report was written");
+            string written = File.ReadAllText(reportFile);
+            StringAssert.Contains("Name: First", written);
+            StringAssert.Contains("Name: Second", written);
         }
 
         private static UploadProfile FindProfile(string profileId)

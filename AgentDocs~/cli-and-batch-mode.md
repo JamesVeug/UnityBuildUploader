@@ -8,7 +8,7 @@ The code on `develop` and the planned design differ. Check which one you are cha
 ### Batch mode — `Editor/Core/Utils/BatchModeUtil.cs`
 
 ```
-"PATH/TO/Unity" -batchmode -quit -projectPath "PATH/TO/PROJECT" -logFile - \
+"PATH/TO/Unity" -batchmode -projectPath "PATH/TO/PROJECT" -logFile - \
     -executeMethod Wireframe.BatchModeUtil.Execute -uploadProfile "PROFILE_GUID_OR_NAME" \
     [-dryRun] [-uploadDescription "TEXT"] [-uploadReportFile "PATH"] [-async]
 ```
@@ -20,13 +20,18 @@ The code on `develop` and the planned design differ. Check which one you are cha
 - `-dryRun` calls `UploadTask.SetDryRun(true)`, `-uploadDescription` calls `SetBuildDescription`, and
   `-uploadReportFile` deletes the file, then appends each task's `GetReport(true)` when it completes (and the
   error when nothing starts).
-- Blocks with `task.StartAndBlock()` unless `-async` is passed. Blocking deliberately reuses
-  `StartAndBlock`: `StartAsync` awaits `Task.Yield()` and posts continuations to the main thread, so a
-  home-grown wait loop can deadlock.
-- In batch mode it calls `EditorApplication.Exit(1)` when a profile isn't found, no task starts or, without
-  `-async`, a task fails. On success it returns and `-quit` exits with 0.
-- `Arguments.Parse`, `CreateTasks` and the report file are covered by `BatchModeUtilTests`; the blocking run and
-  the exit code are not (see `UnitTest/UntestedFixes.md`).
+- Never block the main thread to wait for a task: `StartAsync` awaits `Task.Yield()` and other tasks, and their
+  continuations are posted to the main thread, so `StartAndBlock()`, `.Wait()` or `.Result` there deadlocks as
+  soon as one of them really yields. Batch mode used `StartAndBlock` and hung after the build, at the first
+  modifier. `Execute` now starts `RunAsync`, which awaits each task's `StartAsync` in turn (or starts them all
+  with `-async`), and returns so Unity's editor loop keeps running the continuations.
+- No `-quit`: Unity would quit as soon as `Execute` returns, before the tasks run. In batch mode `Execute`
+  refuses to start with `-quit` (unless `-async`) and exits with 1, and otherwise calls
+  `EditorApplication.Exit` itself when `RunAsync` finishes: 0 when every task succeeded, 1 when a profile isn't
+  found, no task starts or, without `-async`, a task fails. With `-async` it only exits on those start-up
+  failures.
+- `Arguments.Parse`, `CreateTasks`, the report file and `RunAsync` finishing without blocking are covered by
+  `BatchModeUtilTests`; the exit code and the `-quit` check are not (see `UnitTest/UntestedFixes.md`).
 
 ### Unity Pipeline CLI — `Editor/Integrations/UnityPipeline/`
 

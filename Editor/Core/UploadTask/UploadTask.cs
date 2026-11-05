@@ -124,6 +124,7 @@ namespace Wireframe
 
         /// <summary>
         /// Start the upload task synchronously.
+        /// Never call this on the main thread: the task continues there after each await, so blocking it deadlocks. Await StartAsync instead.
         /// </summary>
         /// <param name="invokeDebugLogs">When a log,warning,error occurs during the upload should this log to Unity Console? logs can be found in the report at the end.</param>
         public void StartAndBlock(bool invokeDebugLogs = true)
