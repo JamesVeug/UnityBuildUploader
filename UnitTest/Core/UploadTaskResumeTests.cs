@@ -31,6 +31,7 @@ namespace Wireframe.UnitTest
         private bool m_previousUseLocalDestination;
         private bool m_previousDeleteCache;
         private bool m_previousSaveReport;
+        private bool m_previousOpenBuildFolders;
         private string m_previousCheckpointFolder;
         private List<UploadTask> m_tasksBefore;
         private List<UploadTaskResumer.PendingTask> m_pendingBefore;
@@ -42,6 +43,7 @@ namespace Wireframe.UnitTest
             m_previousUseLocalDestination = Preferences.UseLocalDestinationIfAvailable;
             m_previousDeleteCache = Preferences.DeleteCacheAfterUpload;
             m_previousSaveReport = Preferences.AutoSaveReportToCacheFolder;
+            m_previousOpenBuildFolders = Preferences.OpenBuildFoldersAfterUpload;
             m_previousCheckpointFolder = UploadTaskCheckpoints.FolderPath;
             m_tasksBefore = UploadTask.AllTasks.ToList();
             m_pendingBefore = UploadTaskResumer.Pending.ToList();
@@ -50,6 +52,7 @@ namespace Wireframe.UnitTest
             Preferences.UseLocalDestinationIfAvailable = false;
             Preferences.DeleteCacheAfterUpload = true;
             Preferences.AutoSaveReportToCacheFolder = false;
+            Preferences.OpenBuildFoldersAfterUpload = false;
             UploadTaskCheckpoints.FolderPath = TestSupport.OutputDirectory("Checkpoints");
         }
 
@@ -60,6 +63,7 @@ namespace Wireframe.UnitTest
             Preferences.UseLocalDestinationIfAvailable = m_previousUseLocalDestination;
             Preferences.DeleteCacheAfterUpload = m_previousDeleteCache;
             Preferences.AutoSaveReportToCacheFolder = m_previousSaveReport;
+            Preferences.OpenBuildFoldersAfterUpload = m_previousOpenBuildFolders;
             UploadTaskCheckpoints.FolderPath = m_previousCheckpointFolder;
             UploadTask.AllTasks.RemoveAll(task => !m_tasksBefore.Contains(task));
             UploadTaskResumer.Pending.RemoveAll(task => !m_pendingBefore.Contains(task));

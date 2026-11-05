@@ -167,6 +167,7 @@ running task saves a checkpoint, and `UploadTaskResumer` carries it on afterward
 | `CacheFolderPath` | Cache root; default `Application.persistentDataPath/BuildUploader/CachedBuilds` |
 | `AutoDecompressZippedSourceFiles` (default on) | A `.zip` file source is extracted into the cache |
 | `AutoSaveReportToCacheFolder` (default off) | Writes the report for the Upload Tasks window, from the task's start and as it runs |
+| `OpenBuildFoldersAfterUpload` (default on) | Outside batch mode, a successful task opens where each enabled config's build ended up (`UploadTask.BuildFoldersToOpen`) on the next editor update, after `OnComplete`: every enabled `LocalPathDestination` (a zip opens its folder with the file selected), or the config's cache folder when it has none and Cleanup kept the cache. Empty paths are skipped. Test fixtures that run tasks turn it off |
 
 Per-source `DuplicateFileHandling` defaults to `Error`: two sources writing the same file fail CacheSources.
 Every task start bumps `TotalUploadTasksStarted` and every build bumps `LastBuildNumber` in

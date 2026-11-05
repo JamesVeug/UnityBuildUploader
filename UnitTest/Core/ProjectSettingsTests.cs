@@ -22,6 +22,7 @@ namespace Wireframe.UnitTest
         private string m_previousCheckpointFolder;
         private string m_previousCacheFolder;
         private bool m_previousSaveReport;
+        private bool m_previousOpenBuildFolders;
 
         [SetUp]
         public void SetUp()
@@ -36,9 +37,11 @@ namespace Wireframe.UnitTest
             m_previousCheckpointFolder = UploadTaskCheckpoints.FolderPath;
             m_previousCacheFolder = Preferences.CacheFolderPath;
             m_previousSaveReport = Preferences.AutoSaveReportToCacheFolder;
+            m_previousOpenBuildFolders = Preferences.OpenBuildFoldersAfterUpload;
             UploadTaskCheckpoints.FolderPath = TestSupport.OutputDirectory("Checkpoints");
             Preferences.CacheFolderPath = TestSupport.OutputDirectory("Cache");
             Preferences.AutoSaveReportToCacheFolder = false;
+            Preferences.OpenBuildFoldersAfterUpload = false;
         }
 
         [TearDown]
@@ -47,6 +50,7 @@ namespace Wireframe.UnitTest
             UploadTaskCheckpoints.FolderPath = m_previousCheckpointFolder;
             Preferences.CacheFolderPath = m_previousCacheFolder;
             Preferences.AutoSaveReportToCacheFolder = m_previousSaveReport;
+            Preferences.OpenBuildFoldersAfterUpload = m_previousOpenBuildFolders;
             BuildUploaderProjectSettings settings = BuildUploaderProjectSettings.Instance;
             settings.SkipBuildAndUploadNumberUpdates = m_previousSkip;
             settings.LastBuildNumber = m_previousBuildNumber;

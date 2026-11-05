@@ -19,7 +19,7 @@ namespace Wireframe
                     label = "General",
                     keywords = new HashSet<string>(new[]
                     {
-                        "Build", "Uploader", "Build Uploader", "BuildUploader", "Pipe", "line", "Pipe line", "Pipeline", "Cache", "Update", "Version"
+                        "Build", "Uploader", "Build Uploader", "BuildUploader", "Pipe", "line", "Pipe line", "Pipeline", "Cache", "Update", "Version", "Folder", "Explorer"
                     }),
                 };
 
@@ -274,6 +274,24 @@ namespace Wireframe
                 if (newShowReport != Preferences.ShowReportAfterUpload)
                 {
                     Preferences.ShowReportAfterUpload = newShowReport;
+                }
+            }
+
+            using (new GUILayout.HorizontalScope())
+            {
+                EditorGUILayout.LabelField(
+                    new GUIContent("Open build folders after uploading",
+                        "If enabled, when an upload task succeeds the folders its builds ended up in open in Explorer, Finder or the file manager. " +
+                        "That's each Local Path destination's folder; a zipped build opens its folder with the .zip selected. " +
+                        "A config without a Local Path destination opens its cache folder, but only when 'Delete cache after uploading' is off.\n\n" +
+                        "Skipped in batch mode and for tasks that failed or were cancelled."),
+                    GUILayout.Width(200));
+
+                bool openBuildFolders = Preferences.OpenBuildFoldersAfterUpload;
+                bool newOpenBuildFolders = EditorGUILayout.Toggle(openBuildFolders);
+                if (newOpenBuildFolders != Preferences.OpenBuildFoldersAfterUpload)
+                {
+                    Preferences.OpenBuildFoldersAfterUpload = newOpenBuildFolders;
                 }
             }
 

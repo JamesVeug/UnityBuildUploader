@@ -30,6 +30,7 @@ namespace Wireframe.UnitTest
         [SerializeField] private string m_taskGuid;
         [SerializeField] private string[] m_editorDefines;
         [SerializeField] private bool m_previousSaveReport;
+        [SerializeField] private bool m_previousOpenBuildFolders;
 
         [UnityTest]
         [Category("BuildUploader.PlayerBuild")]
@@ -57,6 +58,8 @@ namespace Wireframe.UnitTest
 
             m_previousSaveReport = Preferences.AutoSaveReportToCacheFolder;
             Preferences.AutoSaveReportToCacheFolder = true;
+            m_previousOpenBuildFolders = Preferences.OpenBuildFoldersAfterUpload;
+            Preferences.OpenBuildFoldersAfterUpload = false;
             m_changedEditor = true;
 
             // Started the way the Upload window starts it, so the Upload Tasks window lists it
@@ -117,6 +120,7 @@ namespace Wireframe.UnitTest
             m_changedEditor = false;
             s_run = null;
             Preferences.AutoSaveReportToCacheFolder = m_previousSaveReport;
+            Preferences.OpenBuildFoldersAfterUpload = m_previousOpenBuildFolders;
 
             // Stop a task that is still running, or the reload after restoring the defines would resume it
             foreach (UploadTask task in UploadTask.AllTasks.Where(task => task.GUID == m_taskGuid && !task.IsComplete))

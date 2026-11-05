@@ -24,6 +24,7 @@ namespace Wireframe.UnitTest
         private bool m_previousUseLocalDestination;
         private bool m_previousDeleteCache;
         private bool m_previousSaveReport;
+        private bool m_previousOpenBuildFolders;
         private bool m_previousDecompress;
         private string m_previousCheckpointFolder;
 
@@ -34,6 +35,7 @@ namespace Wireframe.UnitTest
             m_previousUseLocalDestination = Preferences.UseLocalDestinationIfAvailable;
             m_previousDeleteCache = Preferences.DeleteCacheAfterUpload;
             m_previousSaveReport = Preferences.AutoSaveReportToCacheFolder;
+            m_previousOpenBuildFolders = Preferences.OpenBuildFoldersAfterUpload;
             m_previousDecompress = Preferences.AutoDecompressZippedSourceFiles;
 
             // Isolate the task cache so cleanup can be asserted, and keep the source -> cache -> destination
@@ -42,6 +44,7 @@ namespace Wireframe.UnitTest
             Preferences.UseLocalDestinationIfAvailable = false;
             Preferences.DeleteCacheAfterUpload = true;
             Preferences.AutoSaveReportToCacheFolder = false;
+            Preferences.OpenBuildFoldersAfterUpload = false;
             Preferences.AutoDecompressZippedSourceFiles = true;
 
             // A test task that doesn't finish must not be resumed in the project after a script reload
@@ -57,6 +60,7 @@ namespace Wireframe.UnitTest
             Preferences.UseLocalDestinationIfAvailable = m_previousUseLocalDestination;
             Preferences.DeleteCacheAfterUpload = m_previousDeleteCache;
             Preferences.AutoSaveReportToCacheFolder = m_previousSaveReport;
+            Preferences.OpenBuildFoldersAfterUpload = m_previousOpenBuildFolders;
             Preferences.AutoDecompressZippedSourceFiles = m_previousDecompress;
         }
 
@@ -424,6 +428,7 @@ namespace Wireframe.UnitTest
             Assert.AreEqual(1, configIfFailed.ExecuteCount, "Config IfFailed action");
             Assert.AreEqual(1, taskIfFailed.ExecuteCount, "Task IfFailed action");
             Assert.IsFalse(Directory.Exists(task.CachedLocations[0]), "The task cache must be deleted after a failure.");
+            CollectionAssert.IsEmpty(task.BuildFoldersToOpen(), "A failed task opens no build folders, even one the build was copied to.");
         }
 
         [UnityTest]
@@ -448,7 +453,9 @@ namespace Wireframe.UnitTest
         {
             string source = Fixture("Cancel", "root.txt", "root");
             var gate = new UnitTestGateDestination();
-            var task = new UploadTask("Core cancel", Config(new FolderSource(source), gate));
+            UploadConfig config = Config(new FolderSource(source), gate);
+            config.AddDestination(new LocalPathDestination(Output("Cancel")));
+            var task = new UploadTask("Core cancel", config);
             var taskIfFailed = new UnitTestRecordingAction();
             task.AddAction(new UploadConfig.UploadActionData(taskIfFailed, Status.IfFailed, Trigger.OnTaskFinished));
 
@@ -473,6 +480,7 @@ namespace Wireframe.UnitTest
             Assert.IsFalse(task.IsSuccessful);
             Assert.AreEqual(1, gate.CleanUpCount, "Cleanup must run after cancellation.");
             Assert.AreEqual(1, taskIfFailed.ExecuteCount, "A cancelled task runs IfFailed actions.");
+            CollectionAssert.IsEmpty(task.BuildFoldersToOpen(), "A cancelled task opens no build folders.");
 
             task.Cancel(); // Cancelling a completed task is a no-op.
             Assert.IsTrue(task.IsComplete);
@@ -496,6 +504,48 @@ namespace Wireframe.UnitTest
             Assert.IsTrue(File.Exists(Path.Combine(enabledOutput, "root.txt")));
             Assert.IsFalse(Directory.Exists(disabledDestinationOutput), "A disabled destination must not receive files.");
             Assert.IsFalse(Directory.Exists(disabledConfigOutput), "A disabled config must not run.");
+        }
+
+        [UnityTest]
+        public IEnumerator BuildFoldersAreTheLocalPathsThatReceivedTheBuild()
+        {
+            string source = Fixture("BuildFolders", "root.txt", "root");
+            string folderOutput = Output("BuildFoldersFolder");
+            string zipFolder = TestSupport.OutputDirectory("BuildFoldersZip") + Path.DirectorySeparatorChar;
+            // ZipUtils stages self-contained zips under the shared temp folder by file name, so keep it unique.
+            string zipName = "build-" + System.Guid.NewGuid().ToString("N");
+            var zipped = new LocalPathDestination(zipFolder);
+            zipped.ZipContents(zipName);
+            string disabledOutput = Fixture("BuildFoldersDisabled", "old.txt", "old");
+            UploadConfig config = Config(new FolderSource(source), new LocalPathDestination(folderOutput));
+            config.AddDestination(zipped);
+            config.AddDestination(new UploadConfig.DestinationData(new LocalPathDestination(disabledOutput), false));
+            var task = new UploadTask("Core build folders", config);
+
+            yield return Run(task);
+
+            CollectionAssert.AreEqual(new[] { folderOutput, zipFolder + zipName + ".zip" }, task.BuildFoldersToOpen(),
+                "Expected each enabled Local Path that received the build, and no disabled one.");
+        }
+
+        [UnityTest]
+        public IEnumerator BuildFoldersWithoutALocalPathAreTheKeptCache()
+        {
+            string source = Fixture("BuildFoldersCache", "root.txt", "root");
+            Preferences.DeleteCacheAfterUpload = false;
+            var kept = new UploadTask("Core build folders kept cache", Config(new FolderSource(source), new NoUploadDestination()));
+
+            yield return Run(kept);
+
+            CollectionAssert.AreEqual(new[] { kept.CachedLocations[0] }, kept.BuildFoldersToOpen(),
+                "A config without a Local Path leaves its build in the cache when Cleanup keeps it.");
+
+            Preferences.DeleteCacheAfterUpload = true;
+            var deleted = new UploadTask("Core build folders deleted cache", Config(new FolderSource(source), new NoUploadDestination()));
+
+            yield return Run(deleted);
+
+            CollectionAssert.IsEmpty(deleted.BuildFoldersToOpen(), "A deleted cache has no build to show.");
         }
 
         [UnityTest]

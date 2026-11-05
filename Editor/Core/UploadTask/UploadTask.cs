@@ -260,6 +260,7 @@ namespace Wireframe
             }
 
             OnComplete?.Invoke(m_report);
+            OpenBuildFoldersWhenComplete();
         }
 
         /// <summary>

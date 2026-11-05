@@ -188,6 +188,15 @@ namespace Wireframe
             set => EditorPrefs.SetInt("BuildUploader_ShowReportAfterUpload", (int)value);
         }
         
+        /// <summary>
+        /// Outside batch mode, a successful upload task opens the folders its builds ended up in. See UploadTask.BuildFoldersToOpen.
+        /// </summary>
+        public static bool OpenBuildFoldersAfterUpload
+        {
+            get => EditorPrefs.GetBool("BuildUploader_OpenBuildFoldersAfterUpload", true);
+            set => EditorPrefs.SetBool("BuildUploader_OpenBuildFoldersAfterUpload", value);
+        }
+
         public static bool AutoDecompressZippedSourceFiles
         {
             get => EditorPrefs.GetBool("BuildUploader_AutoDecompressZippedSourceFiles", true);

@@ -10,6 +10,21 @@ namespace Wireframe.UnitTest
 {
     public class SteamPreviewTests
     {
+        private bool m_previousOpenBuildFolders;
+
+        [SetUp]
+        public void SetUp()
+        {
+            m_previousOpenBuildFolders = Preferences.OpenBuildFoldersAfterUpload;
+            Preferences.OpenBuildFoldersAfterUpload = false;
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            Preferences.OpenBuildFoldersAfterUpload = m_previousOpenBuildFolders;
+        }
+
         [UnityTest, Category("BuildUploader.SteamPreview")]
         public IEnumerator OneSteamPreviewUpload()
         {

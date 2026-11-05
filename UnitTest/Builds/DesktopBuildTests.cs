@@ -10,6 +10,21 @@ namespace Wireframe.UnitTest
 {
     public class DesktopBuildTests
     {
+        private bool m_previousOpenBuildFolders;
+
+        [SetUp]
+        public void SetUp()
+        {
+            m_previousOpenBuildFolders = Preferences.OpenBuildFoldersAfterUpload;
+            Preferences.OpenBuildFoldersAfterUpload = false;
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            Preferences.OpenBuildFoldersAfterUpload = m_previousOpenBuildFolders;
+        }
+
         [UnityEngine.TestTools.UnityTest]
         [Category("BuildUploader.PlayerBuild")]
         public System.Collections.IEnumerator OneBuildForActiveDesktopTarget()
