@@ -32,13 +32,7 @@ namespace Wireframe
                 }
             }
 
-            bool newCleanBuild = GUILayout.Toggle(m_CleanBuild, "Clean Build");
-            if (newCleanBuild != m_CleanBuild)
-            {
-                m_CleanBuild = newCleanBuild;
-                isDirty = true;
-            }
-
+            DrawCleanBuildCollapsed();
             DrawAddressablesCollapsed();
         }
 

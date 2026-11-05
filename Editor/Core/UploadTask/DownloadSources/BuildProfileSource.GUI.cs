@@ -10,13 +10,7 @@ namespace Wireframe
         {
             isDirty |= BuildProfileUIUtils.BuildProfilesPopup.DrawPopup(ref m_BuildConfig, m_context);
 
-            bool newCleanBuild = GUILayout.Toggle(m_CleanBuild, "Clean Build");
-            if (newCleanBuild != m_CleanBuild)
-            {
-                m_CleanBuild = newCleanBuild;
-                isDirty = true;
-            }
-
+            DrawCleanBuildCollapsed();
             DrawAddressablesCollapsed();
         }
 

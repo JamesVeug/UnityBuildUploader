@@ -38,6 +38,17 @@ namespace Wireframe
         }
 
         /// <summary>
+        /// Short note for the collapsed view when Clean Build is enabled.
+        /// </summary>
+        protected void DrawCleanBuildCollapsed()
+        {
+            if (m_CleanBuild)
+            {
+                GUILayout.Label(new GUIContent("+ Clean Build", "Deletes the build folder before building"), GUILayout.ExpandWidth(false));
+            }
+        }
+
+        /// <summary>
         /// Short note for the collapsed view when Build Addressables is enabled.
         /// </summary>
         protected void DrawAddressablesCollapsed()
