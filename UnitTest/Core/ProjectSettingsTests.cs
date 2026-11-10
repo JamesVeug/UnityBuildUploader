@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.IO;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.TestTools;
 
@@ -122,6 +124,26 @@ namespace Wireframe.UnitTest
             var saved = JSON.DeserializeObject<BuildUploaderProjectSettings>(
                 JSON.SerializeObject(new BuildUploaderProjectSettings { SkipBuildAndUploadNumberUpdates = true }));
             Assert.IsTrue(saved.SkipBuildAndUploadNumberUpdates);
+        }
+
+        [Test]
+        public void BuildMetaDataIsSkippedForTargetsWithoutAStreamingAssetsFolder()
+        {
+            // An Android build is a packaged .apk, so there is no StreamingAssets folder to add the file to. This
+            // used to warn, then create a directory from an empty path, which threw and failed the build task.
+            string root = TestSupport.OutputDirectory("BuildMetaData/Android");
+            string apk = Path.Combine(root, "Game.apk");
+            File.WriteAllText(apk, "apk");
+            var options = new BuildPlayerOptions
+            {
+                target = BuildTarget.Android,
+                targetGroup = BuildTargetGroup.Android,
+                locationPathName = apk,
+            };
+
+            LogAssert.Expect(LogType.Warning, new Regex("Unsupported build target group 'Android'"));
+            Assert.DoesNotThrow(() => BuildUploaderProjectSettings.SaveToStreamingAssets(new BuildMetaData(), options, apk));
+            Assert.IsEmpty(Directory.GetFiles(root, "BuildData.json", SearchOption.AllDirectories));
         }
     }
 }

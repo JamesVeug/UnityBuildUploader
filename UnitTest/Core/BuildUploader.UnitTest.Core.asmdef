@@ -1,6 +1,7 @@
 {
   "name": "BuildUploader.UnitTest.Core",
   "references": [
+    "VeugelJame.BuildUploader",
     "VeugelJame.BuildUploader.Editor",
     "BuildUploader.UnitTest.Common"
   ],

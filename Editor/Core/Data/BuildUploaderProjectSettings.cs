@@ -115,6 +115,7 @@ namespace Wireframe
                 {
                     // TODO: More platforms
                     Debug.LogWarning($"Unsupported build target group '{options.targetGroup}' for build meta data inclusion.");
+                    return;
                 }
             }
             else
