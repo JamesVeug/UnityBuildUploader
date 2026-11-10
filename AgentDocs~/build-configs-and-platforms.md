@@ -116,7 +116,9 @@ available. Route platform-specific behaviour through `BuildUtils`, not `switch` 
   because `AndroidArchitecture` flags differ between versions; configs saved without them take the editor's
   current settings). `ApplySettings` applies them through `ApplyAndroidSettings` when `TargetPlatform` is Android.
   The extension is `.aab` with the bundle flag, else `.apk`; `BuildProfileWrapper` reads `buildAppBundle` by
-  reflection.
+  reflection. Before an Android build `ABuildSource` fills keystore passwords Unity forgot from
+  `AndroidSigning` (per-user `ProjectEditorPrefs`, set in Project Settings > Build Uploader > General) and fails
+  the step with the reason when a custom keystore still has none.
 - **Module checks.** `IsTargetGroupInstalled` / `IsTargetGroupSupported` are the canonical probes; on
   6000.0+ `IsTargetGroupSupported` calls `BuildPipeline.IsBuildPlatformSupported` by reflection.
   `TrySwitchPlatform` requires a non-zero `TargetPlatformSubTarget` for Standalone (2021.1+), non-`-1` on 6000.0+.

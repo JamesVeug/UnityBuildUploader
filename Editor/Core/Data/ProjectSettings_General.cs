@@ -14,7 +14,7 @@ namespace Wireframe
         {
             HashSet<string> keywords = new HashSet<string>(new[]
             {
-                "Build", "Uploader", "Build Uploader", "BuildUploader", "Pipe", "line", "pipe line", "Pipeline", "meta", "data"
+                "Build", "Uploader", "Build Uploader", "BuildUploader", "Pipe", "line", "pipe line", "Pipeline", "meta", "data", "Android", "Keystore"
             });
             
             var provider =
@@ -110,6 +110,36 @@ namespace Wireframe
                 {
                     settings.TotalUploadTasksStarted = totalStartedUploadTasks;
                     BuildUploaderProjectSettings.Save();
+                }
+            }
+
+            GUILayout.Label("", EditorStyles.boldLabel);
+
+            GUIContent androidSigningLabel = new GUIContent("Android Signing", "Unity forgets the custom keystore passwords when it closes, so Android builds signed with your own " +
+                            "keystore fail until they are entered again. These are filled in when Player Settings has none. " +
+                                                                 "They are saved and obfuscated on this computer, not in the project.");
+            GUILayout.Label(androidSigningLabel, EditorStyles.boldLabel);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                GUIContent label = new GUIContent("Keystore Password", "Password of the keystore set in Player Settings > Publishing Settings.");
+                GUILayout.Label(label, GUILayout.MaxWidth(150));
+                string keystorePassword = AndroidSigning.KeystorePassword;
+                string newKeystorePassword = EditorGUILayout.PasswordField(keystorePassword);
+                if (newKeystorePassword != keystorePassword)
+                {
+                    AndroidSigning.KeystorePassword = newKeystorePassword;
+                }
+            }
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                GUIContent label = new GUIContent("Key Password", "Password of the key alias set in Player Settings > Publishing Settings.");
+                GUILayout.Label(label, GUILayout.MaxWidth(150));
+                string keyAliasPassword = AndroidSigning.KeyAliasPassword;
+                string newKeyAliasPassword = EditorGUILayout.PasswordField(keyAliasPassword);
+                if (newKeyAliasPassword != keyAliasPassword)
+                {
+                    AndroidSigning.KeyAliasPassword = newKeyAliasPassword;
                 }
             }
         }

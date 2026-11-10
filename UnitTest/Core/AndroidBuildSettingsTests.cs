@@ -6,20 +6,30 @@ using UnityEngine;
 namespace Wireframe.UnitTest
 {
     /// <summary>
-    /// Android build settings that need no Android module: App Bundle and architectures in a BuildConfig, and the
-    /// desktop architecture kept off Android.
+    /// Android build settings that need no Android module: App Bundle and architectures in a BuildConfig, the
+    /// desktop architecture kept off Android, and the keystore passwords Unity forgets.
     /// </summary>
     [Category("BuildUploader.Core")]
     public class AndroidBuildSettingsTests
     {
         private bool m_previousBuildAppBundle;
         private AndroidArchitecture m_previousArchitectures;
+        private bool m_previousUseCustomKeystore;
+        private string m_previousKeystorePass;
+        private string m_previousKeyaliasPass;
+        private string m_previousStoredKeystorePassword;
+        private string m_previousStoredKeyAliasPassword;
 
         [SetUp]
         public void SetUp()
         {
             m_previousBuildAppBundle = EditorUserBuildSettings.buildAppBundle;
             m_previousArchitectures = PlayerSettings.Android.targetArchitectures;
+            m_previousUseCustomKeystore = PlayerSettings.Android.useCustomKeystore;
+            m_previousKeystorePass = PlayerSettings.Android.keystorePass;
+            m_previousKeyaliasPass = PlayerSettings.Android.keyaliasPass;
+            m_previousStoredKeystorePassword = AndroidSigning.KeystorePassword;
+            m_previousStoredKeyAliasPassword = AndroidSigning.KeyAliasPassword;
         }
 
         [TearDown]
@@ -27,6 +37,11 @@ namespace Wireframe.UnitTest
         {
             EditorUserBuildSettings.buildAppBundle = m_previousBuildAppBundle;
             PlayerSettings.Android.targetArchitectures = m_previousArchitectures;
+            PlayerSettings.Android.useCustomKeystore = m_previousUseCustomKeystore;
+            PlayerSettings.Android.keystorePass = m_previousKeystorePass;
+            PlayerSettings.Android.keyaliasPass = m_previousKeyaliasPass;
+            AndroidSigning.KeystorePassword = m_previousStoredKeystorePassword;
+            AndroidSigning.KeyAliasPassword = m_previousStoredKeyAliasPassword;
         }
 
         private static BuildConfig AndroidConfig(bool appBundle)
@@ -105,6 +120,58 @@ namespace Wireframe.UnitTest
         {
             Assert.IsFalse(BuildUtils.UsesTargetArchitecture(BuildTargetGroup.Android));
             Assert.IsTrue(BuildUtils.UsesTargetArchitecture(BuildTargetGroup.Standalone));
+        }
+
+        [Test]
+        public void StoredKeystorePasswordsFillTheOnesUnityForgot()
+        {
+            PlayerSettings.Android.useCustomKeystore = true;
+            PlayerSettings.Android.keystorePass = "";
+            PlayerSettings.Android.keyaliasPass = "";
+            AndroidSigning.KeystorePassword = "store-secret";
+            AndroidSigning.KeyAliasPassword = "alias-secret";
+
+            Assert.IsTrue(AndroidSigning.TryApplyPasswords(out string error), error);
+            Assert.AreEqual("store-secret", PlayerSettings.Android.keystorePass);
+            Assert.AreEqual("alias-secret", PlayerSettings.Android.keyaliasPass);
+        }
+
+        [Test]
+        public void PasswordsEnteredInPlayerSettingsAreKept()
+        {
+            PlayerSettings.Android.useCustomKeystore = true;
+            PlayerSettings.Android.keystorePass = "typed-store";
+            PlayerSettings.Android.keyaliasPass = "typed-alias";
+            AndroidSigning.KeystorePassword = "store-secret";
+            AndroidSigning.KeyAliasPassword = "alias-secret";
+
+            Assert.IsTrue(AndroidSigning.TryApplyPasswords(out _));
+            Assert.AreEqual("typed-store", PlayerSettings.Android.keystorePass);
+            Assert.AreEqual("typed-alias", PlayerSettings.Android.keyaliasPass);
+        }
+
+        [Test]
+        public void MissingKeystorePasswordsFailWithTheReason()
+        {
+            PlayerSettings.Android.useCustomKeystore = true;
+            PlayerSettings.Android.keystorePass = "";
+            PlayerSettings.Android.keyaliasPass = "";
+            AndroidSigning.KeystorePassword = "";
+            AndroidSigning.KeyAliasPassword = "";
+
+            Assert.IsFalse(AndroidSigning.TryApplyPasswords(out string error));
+            StringAssert.Contains("Android Signing", error);
+        }
+
+        [Test]
+        public void DebugSignedBuildsNeedNoPasswords()
+        {
+            PlayerSettings.Android.useCustomKeystore = false;
+            AndroidSigning.KeystorePassword = "";
+            AndroidSigning.KeyAliasPassword = "";
+
+            Assert.IsTrue(AndroidSigning.TryApplyPasswords(out string error));
+            Assert.IsNull(error);
         }
     }
 }

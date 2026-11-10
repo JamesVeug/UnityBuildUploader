@@ -201,6 +201,13 @@ namespace Wireframe
                 stepResult.AddLog($"Target: {options.target}");
                 stepResult.AddLog($"Build Options: {options.options}");
 
+                if (options.target == BuildTarget.Android && !AndroidSigning.TryApplyPasswords(out string signingError))
+                {
+                    stepResult.SetFailed(signingError);
+                    token.Cancel();
+                    return false;
+                }
+
                 // Ensure we are outside the player loop (e.g., OnGUI or Update) before building
                 stepResult.AddLog("Starting build...");
                 var tcs = new TaskCompletionSource<BuildReport>();
