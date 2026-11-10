@@ -1,5 +1,6 @@
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using UnityEditor;
 #if UNITY_6000_0_OR_NEWER
@@ -91,7 +92,8 @@ namespace Wireframe.UnitTest
         }
 
         /// <summary>
-        /// The meta data went in through Resources and was removed again
+        /// The meta data went in through Resources and was removed again, and the build took a real time (batch
+        /// mode used to report 0 ms because the stopwatch started after the build)
         /// </summary>
         private static void CheckReport(UploadTask task)
         {
@@ -99,6 +101,10 @@ namespace Wireframe.UnitTest
             StringAssert.Contains("Adding build meta data to Resources for the build", report);
             Assert.IsFalse(Directory.Exists(BuildUploaderProjectSettings.MetaDataResourcesFolder),
                 "The build meta data was left in the project");
+
+            Match duration = Regex.Match(report, @"Build completed in (\d+) ms");
+            Assert.IsTrue(duration.Success, "No build duration in the report");
+            Assert.Greater(long.Parse(duration.Groups[1].Value), 0, "The build duration was not measured");
         }
 
         private static BuildConfig NewBuildConfig(string name)

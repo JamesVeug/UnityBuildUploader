@@ -220,6 +220,7 @@ namespace Wireframe
 
                 // Ensure we are outside the player loop (e.g., OnGUI or Update) before building
                 stepResult.AddLog("Starting build...");
+                Stopwatch stopwatch = Stopwatch.StartNew();
                 var tcs = new TaskCompletionSource<BuildReport>();
                 if (Application.isBatchMode)
                 {
@@ -253,7 +254,6 @@ namespace Wireframe
                 }
 
                 // Build the player
-                Stopwatch stopwatch = Stopwatch.StartNew();
                 report = await tcs.Task;
                 stopwatch.Stop();
                 stepResult.AddLog($"Build completed in {stopwatch.ElapsedMilliseconds} ms ({report.summary.result})");
