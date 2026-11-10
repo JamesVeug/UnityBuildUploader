@@ -59,6 +59,7 @@ namespace Wireframe
             {
                 GUIContent label = new GUIContent("Include Streaming Folder", 
                     "Include a BuildData.json file in your builds StreamingAssets folder so your can reference the build number and other variables in your game." +
+                    " Packaged players such as Android get it as a Resources text asset instead, added for the build and removed after." +
                     "\n\nSee BuildMetaData.Get()");
                 GUILayout.Label(label, GUILayout.MaxWidth(150));
 
@@ -116,7 +117,7 @@ namespace Wireframe
             GUILayout.Label("", EditorStyles.boldLabel);
 
             GUIContent androidSigningLabel = new GUIContent("Android Signing", "Unity forgets the custom keystore passwords when it closes, so Android builds signed with your own " +
-                            "keystore fail until they are entered again. These are filled in when Player Settings has none. " +
+                                                                 "keystore fail until they are entered again. These are filled in when Player Settings has none. " +
                                                                  "They are saved and obfuscated on this computer, not in the project.");
             GUILayout.Label(androidSigningLabel, EditorStyles.boldLabel);
             using (new EditorGUILayout.HorizontalScope())

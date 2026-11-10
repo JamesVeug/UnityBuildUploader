@@ -104,6 +104,7 @@ namespace Wireframe
             }
             
             BuildReport report = null;
+            bool metaDataInResources = false;
             try
             {
                 m_buildMetaData = BuildUploaderProjectSettings.CreateFromContext(m_context);
@@ -208,6 +209,15 @@ namespace Wireframe
                     return false;
                 }
 
+                // A packaged player (such as an .apk) can't be changed after the build, so its meta data goes in first
+                if (BuildUploaderProjectSettings.Instance.IncludeBuildMetaDataInStreamingDataFolder &&
+                    !BuildUploaderProjectSettings.CanAddMetaDataAfterBuild(options.targetGroup))
+                {
+                    stepResult.AddLog("Adding build meta data to Resources for the build");
+                    metaDataInResources = true;
+                    BuildUploaderProjectSettings.SaveToResources(m_buildMetaData);
+                }
+
                 // Ensure we are outside the player loop (e.g., OnGUI or Update) before building
                 stepResult.AddLog("Starting build...");
                 var tcs = new TaskCompletionSource<BuildReport>();
@@ -253,7 +263,8 @@ namespace Wireframe
                 if (report.summary.result == BuildResult.Succeeded && stepResult.Successful)
                 {
                     LastBuildUtil.SetLastBuild(m_filePath, m_context.FormatString(Context.BUILD_NAME_KEY));
-                    if (BuildUploaderProjectSettings.Instance.IncludeBuildMetaDataInStreamingDataFolder)
+                    if (BuildUploaderProjectSettings.Instance.IncludeBuildMetaDataInStreamingDataFolder &&
+                        BuildUploaderProjectSettings.CanAddMetaDataAfterBuild(options.targetGroup))
                     {
                         stepResult.AddLog("Saving build meta data to StreamingAssets folder");
                         BuildUploaderProjectSettings.SaveToStreamingAssets(m_buildMetaData, options, report.summary.outputPath);
@@ -269,6 +280,10 @@ namespace Wireframe
             }
             finally
             {
+                if (metaDataInResources)
+                {
+                    BuildUploaderProjectSettings.DeleteFromResources();
+                }
                 BuildUtils.ReleaseBuildLock();
                 stepResult.SetPercentComplete(1f);
             }

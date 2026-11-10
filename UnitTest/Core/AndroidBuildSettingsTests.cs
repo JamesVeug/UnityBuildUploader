@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -7,7 +8,8 @@ namespace Wireframe.UnitTest
 {
     /// <summary>
     /// Android build settings that need no Android module: App Bundle and architectures in a BuildConfig, the
-    /// desktop architecture kept off Android, and the keystore passwords Unity forgets.
+    /// desktop architecture kept off Android, the keystore passwords Unity forgets, and build meta data for
+    /// packaged players.
     /// </summary>
     [Category("BuildUploader.Core")]
     public class AndroidBuildSettingsTests
@@ -42,6 +44,7 @@ namespace Wireframe.UnitTest
             PlayerSettings.Android.keyaliasPass = m_previousKeyaliasPass;
             AndroidSigning.KeystorePassword = m_previousStoredKeystorePassword;
             AndroidSigning.KeyAliasPassword = m_previousStoredKeyAliasPassword;
+            BuildUploaderProjectSettings.DeleteFromResources();
         }
 
         private static BuildConfig AndroidConfig(bool appBundle)
@@ -172,6 +175,27 @@ namespace Wireframe.UnitTest
 
             Assert.IsTrue(AndroidSigning.TryApplyPasswords(out string error));
             Assert.IsNull(error);
+        }
+
+        [Test]
+        public void PackagedPlayersGetMetaDataThroughResources()
+        {
+            Assert.IsTrue(BuildUploaderProjectSettings.CanAddMetaDataAfterBuild(BuildTargetGroup.Standalone));
+            Assert.IsTrue(BuildUploaderProjectSettings.CanAddMetaDataAfterBuild(BuildTargetGroup.WebGL));
+            Assert.IsFalse(BuildUploaderProjectSettings.CanAddMetaDataAfterBuild(BuildTargetGroup.Android));
+
+            BuildUploaderProjectSettings.SaveToResources(new BuildMetaData { BuildNumber = 42, UploadNumber = 7 });
+
+            TextAsset resource = Resources.Load<TextAsset>(BuildMetaData.ResourceName);
+            Assert.IsNotNull(resource, "BuildMetaData.Get() reads this in the player");
+            BuildMetaData loaded = JsonUtility.FromJson<BuildMetaData>(resource.text);
+            Assert.AreEqual(42, loaded.BuildNumber);
+            Assert.AreEqual(7, loaded.UploadNumber);
+
+            BuildUploaderProjectSettings.DeleteFromResources();
+
+            Assert.IsFalse(Directory.Exists(BuildUploaderProjectSettings.MetaDataResourcesFolder));
+            Assert.IsFalse(File.Exists(BuildUploaderProjectSettings.MetaDataResourcesFolder + ".meta"));
         }
     }
 }

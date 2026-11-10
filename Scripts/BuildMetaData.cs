@@ -7,6 +7,12 @@ namespace Wireframe
     [Serializable]
     public class BuildMetaData
     {
+        /// <summary>
+        /// Packaged players (Android) can't take a StreamingAssets file after the build, so they get the meta data
+        /// as a Resources text asset with this name
+        /// </summary>
+        public const string ResourceName = "BuildUploaderBuildData";
+
         public int BuildNumber;
         public int UploadNumber;
 
@@ -26,6 +32,12 @@ namespace Wireframe
             {
                 string json = File.ReadAllText(path);
                 return JsonUtility.FromJson<BuildMetaData>(json);
+            }
+
+            TextAsset resource = Resources.Load<TextAsset>(ResourceName);
+            if (resource != null)
+            {
+                return JsonUtility.FromJson<BuildMetaData>(resource.text);
             }
 
             CloudBuildManifest cloudBuildManifest = CloudBuildManifest.Instance;

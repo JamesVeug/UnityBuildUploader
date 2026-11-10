@@ -16,6 +16,7 @@ namespace Wireframe.UnitTest
     {
         private bool m_previousOpenBuildFolders;
         private bool m_previousBuildAppBundle;
+        private bool m_previousIncludeMetaData;
 
         [SetUp]
         public void SetUp()
@@ -24,6 +25,8 @@ namespace Wireframe.UnitTest
             Preferences.OpenBuildFoldersAfterUpload = false;
             m_previousBuildAppBundle = EditorUserBuildSettings.buildAppBundle;
             EditorUserBuildSettings.buildAppBundle = false;
+            m_previousIncludeMetaData = BuildUploaderProjectSettings.Instance.IncludeBuildMetaDataInStreamingDataFolder;
+            BuildUploaderProjectSettings.Instance.IncludeBuildMetaDataInStreamingDataFolder = true;
         }
 
         [TearDown]
@@ -31,6 +34,7 @@ namespace Wireframe.UnitTest
         {
             Preferences.OpenBuildFoldersAfterUpload = m_previousOpenBuildFolders;
             EditorUserBuildSettings.buildAppBundle = m_previousBuildAppBundle;
+            BuildUploaderProjectSettings.Instance.IncludeBuildMetaDataInStreamingDataFolder = m_previousIncludeMetaData;
         }
 
         [UnityEngine.TestTools.UnityTest]
@@ -45,6 +49,7 @@ namespace Wireframe.UnitTest
 
             Assert.IsNotEmpty(Directory.GetFiles(root, "*.apk", SearchOption.AllDirectories),
                 "UploadTask reported success without an APK under " + root);
+            CheckReport(task);
         }
 
         [UnityEngine.TestTools.UnityTest]
@@ -64,6 +69,7 @@ namespace Wireframe.UnitTest
                 "UploadTask reported success without an App Bundle under " + root);
             Assert.IsEmpty(Directory.GetFiles(root, "*.apk", SearchOption.AllDirectories),
                 "An App Bundle was named .apk under " + root);
+            CheckReport(task);
         }
 
         private static void RequireAndroid()
@@ -82,6 +88,17 @@ namespace Wireframe.UnitTest
             var uploadTask = new UploadTask("Android UploadTask build", config);
             uploadTask.SetBuildDescription("UploadTask Android build integration test");
             return uploadTask;
+        }
+
+        /// <summary>
+        /// The meta data went in through Resources and was removed again
+        /// </summary>
+        private static void CheckReport(UploadTask task)
+        {
+            string report = task.Report.GetReport();
+            StringAssert.Contains("Adding build meta data to Resources for the build", report);
+            Assert.IsFalse(Directory.Exists(BuildUploaderProjectSettings.MetaDataResourcesFolder),
+                "The build meta data was left in the project");
         }
 
         private static BuildConfig NewBuildConfig(string name)

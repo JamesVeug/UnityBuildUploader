@@ -9,6 +9,10 @@ namespace Wireframe
         private static readonly string FilePath = Application.dataPath + "/../BuildUploader/ProjectSettings.json";
         private static readonly int CurrentVersion = 1;
         
+        // Temporary for platforms that don't support the streaming assets folder (ie: Android)
+        internal const string MetaDataResourcesFolder = "Assets/BuildUploaderBuildData";
+        internal static readonly string MetaDataResourcePath = MetaDataResourcesFolder + "/Resources/" + BuildMetaData.ResourceName + ".json";
+        
         private static BuildUploaderProjectSettings _instance;
         public static BuildUploaderProjectSettings Instance
         {
@@ -132,6 +136,46 @@ namespace Wireframe
             File.WriteAllText(streamingAssetPath + "/BuildData.json", json);
         }
         
+        /// <summary>
+        /// Desktop and WebGL players are folders, so BuildData.json is added to their StreamingAssets after the build.
+        /// Other players are packaged (an .apk or .aab on Android) and get it through Resources before the build.
+        /// </summary>
+        internal static bool CanAddMetaDataAfterBuild(BuildTargetGroup targetGroup)
+        {
+            return targetGroup == BuildTargetGroup.Standalone || targetGroup == BuildTargetGroup.WebGL;
+        }
+
+        /// <summary>
+        /// Adds the meta data as a Resources text asset that BuildMetaData.Get() reads in the player.
+        /// Call DeleteFromResources after the build.
+        /// </summary>
+        internal static void SaveToResources(BuildMetaData meta)
+        {
+            DeleteFromResources(); // Left by an interrupted build
+            Directory.CreateDirectory(Path.GetDirectoryName(MetaDataResourcePath));
+            File.WriteAllText(MetaDataResourcePath, JsonUtility.ToJson(meta, true));
+            AssetDatabase.ImportAsset(MetaDataResourcePath, ImportAssetOptions.ForceSynchronousImport);
+        }
+
+        internal static void DeleteFromResources()
+        {
+            if (AssetDatabase.IsValidFolder(MetaDataResourcesFolder))
+            {
+                AssetDatabase.DeleteAsset(MetaDataResourcesFolder);
+            }
+
+            // Not imported yet, or the import failed
+            if (Directory.Exists(MetaDataResourcesFolder))
+            {
+                Directory.Delete(MetaDataResourcesFolder, true);
+            }
+
+            if (File.Exists(MetaDataResourcesFolder + ".meta"))
+            {
+                File.Delete(MetaDataResourcesFolder + ".meta");
+            }
+        }
+
         public static void BumpUploadNumber()
         {
             BuildUploaderProjectSettings settings = BuildUploaderProjectSettings.Instance;
