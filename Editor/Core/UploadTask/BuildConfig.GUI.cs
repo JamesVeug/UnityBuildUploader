@@ -279,6 +279,33 @@ namespace Wireframe
                             }
                         }
                     }
+
+                    if (TargetPlatform == BuildTargetGroup.Android)
+                    {
+                        using (new EditorGUILayout.HorizontalScope())
+                        {
+                            GUIContent label = new GUIContent("Build App Bundle:", "Build an Android App Bundle (.aab) for Google Play instead of an APK.");
+                            GUILayout.Label(label, GUILayout.Width(150));
+                            bool newBuildAppBundle = EditorGUILayout.Toggle(AndroidBuildAppBundle);
+                            if (newBuildAppBundle != AndroidBuildAppBundle)
+                            {
+                                AndroidBuildAppBundle = newBuildAppBundle;
+                                dirty = true;
+                            }
+                        }
+
+                        using (new EditorGUILayout.HorizontalScope())
+                        {
+                            GUIContent label = new GUIContent("Target Architectures:", "The CPU architectures the Android build includes. ARM64 needs the IL2CPP scripting backend.");
+                            GUILayout.Label(label, GUILayout.Width(150));
+                            AndroidArchitecture newArchitectures = (AndroidArchitecture)EditorGUILayout.EnumFlagsField(AndroidTargetArchitectures);
+                            if (newArchitectures != AndroidTargetArchitectures)
+                            {
+                                AndroidTargetArchitectures = newArchitectures;
+                                dirty = true;
+                            }
+                        }
+                    }
                 }
             }
         }

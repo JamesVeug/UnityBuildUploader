@@ -424,12 +424,15 @@ namespace Wireframe
                     return false;
                 }
                 
-                int architectureValue = architecture.GetIntValue();
+                if (UsesTargetArchitecture(targetPlatform))
+                {
+                    int architectureValue = architecture.GetIntValue();
 #if UNITY_2021_1_OR_NEWER
-                PlayerSettings.SetArchitecture(NamedBuildTarget.FromBuildTargetGroup(targetPlatform), architectureValue);
+                    PlayerSettings.SetArchitecture(NamedBuildTarget.FromBuildTargetGroup(targetPlatform), architectureValue);
 #else
-                PlayerSettings.SetArchitecture(targetPlatform, architectureValue);
+                    PlayerSettings.SetArchitecture(targetPlatform, architectureValue);
 #endif
+                }
             }
             catch (Exception e)
             {
@@ -439,6 +442,15 @@ namespace Wireframe
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// The desktop Target Architecture means nothing on Android, whose architectures are a separate
+        /// BuildConfig setting (PlayerSettings.Android.targetArchitectures).
+        /// </summary>
+        internal static bool UsesTargetArchitecture(BuildTargetGroup targetPlatform)
+        {
+            return targetPlatform != BuildTargetGroup.Android;
         }
 
         public static bool IsEditorSetToTarget(BuildTargetGroup targetPlatform, int targetPlatformSubTarget, BuildTarget target)

@@ -43,6 +43,10 @@ namespace Wireframe
         public ManagedStrippingLevel StrippingLevel = ManagedStrippingLevel.Disabled;
         public ScriptingImplementation ScriptingBackend = ScriptingImplementation.Mono2x;
         public BuildUtils.Compression CompressionMethod = BuildUtils.Compression.Default;
+        
+        // Android
+        public bool AndroidBuildAppBundle;
+        public AndroidArchitecture AndroidTargetArchitectures = AndroidArchitecture.ARM64;
 
         public BuildConfig()
         {
@@ -73,6 +77,8 @@ namespace Wireframe
             StrippingLevel = ManagedStrippingLevel.Disabled;
             ScriptingBackend = ScriptingImplementation.Mono2x;
             CompressionMethod = BuildUtils.Compression.Default;
+            AndroidBuildAppBundle = false;
+            AndroidTargetArchitectures = AndroidArchitecture.ARM64;
             StackTraceLogTypes = new Dictionary<LogType, StackTraceLogType>();
             foreach (LogType logType in Enum.GetValues(typeof(LogType)))
             {
@@ -102,6 +108,8 @@ namespace Wireframe
             StrippingLevel = BuildUtils.CurrentStrippingLevel();
             ScriptingBackend = BuildUtils.CurrentScriptingBackend();
             CompressionMethod = BuildUtils.CurrentCompressionMethod(TargetPlatform);
+            AndroidBuildAppBundle = EditorUserBuildSettings.buildAppBundle;
+            AndroidTargetArchitectures = PlayerSettings.Android.targetArchitectures;
         }
 
         public void SetDebuggingOn(bool on)
@@ -144,7 +152,9 @@ namespace Wireframe
                 { "StackTraceLogTypes", StackTraceLogTypes.ToDictionary(kvp => kvp.Key.ToString(), kvp => kvp.Value.ToString()) },
                 { "StrippingLevel", StrippingLevel.ToString() },
                 { "ScriptingBackend", ScriptingBackend.ToString() },
-                { "CompressionMethod", CompressionMethod.ToString() }
+                { "CompressionMethod", CompressionMethod.ToString() },
+                { "AndroidBuildAppBundle", AndroidBuildAppBundle },
+                { "AndroidTargetArchitectures", (int)AndroidTargetArchitectures }
             };
             return dict;
         }
@@ -414,11 +424,32 @@ namespace Wireframe
             {
                 CompressionMethod = BuildUtils.CurrentCompressionMethod(TargetPlatform);
             }
+            
+            // Configs saved before these existed built with the editor's own settings, so keep doing that
+            if (dict.TryGetValue("AndroidBuildAppBundle", out var buildAppBundleData) && buildAppBundleData is bool buildAppBundle)
+            {
+                AndroidBuildAppBundle = buildAppBundle;
+            }
+            else
+            {
+                AndroidBuildAppBundle = EditorUserBuildSettings.buildAppBundle;
+            }
+            
+            // Saved as a number because the flags differ between Unity versions. A long from JSON, an int when
+            // copied straight from Serialize()
+            if (dict.TryGetValue("AndroidTargetArchitectures", out var architecturesData) && (architecturesData is long || architecturesData is int))
+            {
+                AndroidTargetArchitectures = (AndroidArchitecture)Convert.ToInt32(architecturesData);
+            }
+            else
+            {
+                AndroidTargetArchitectures = PlayerSettings.Android.targetArchitectures;
+            }
         }
 
         public string GetProductExtension()
         {
-            return BuildUtils.GetPlatformExtension(TargetPlatform, Target, false); // Android not supported atm
+            return BuildUtils.GetPlatformExtension(TargetPlatform, Target, TargetPlatform == BuildTargetGroup.Android && AndroidBuildAppBundle);
         }
 
         public BuildOptions GetBuildOptions()
@@ -482,6 +513,10 @@ namespace Wireframe
             EditorUserBuildSettings.buildWithDeepProfilingSupport = EnableDeepProfilingSupport;
             EditorUserBuildSettings.buildScriptsOnly = BuildScriptsOnly;
             BuildUtils.SetCompressionType(TargetPlatform, CompressionMethod);
+            if (TargetPlatform == BuildTargetGroup.Android)
+            {
+                ApplyAndroidSettings();
+            }
             
             // Scene list
             if (SceneGUIDs == null || SceneGUIDs.Count == 0)
@@ -494,6 +529,18 @@ namespace Wireframe
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Build an App Bundle or APK, and for which CPU architectures. Architectures left empty keep the project's.
+        /// </summary>
+        internal void ApplyAndroidSettings()
+        {
+            EditorUserBuildSettings.buildAppBundle = AndroidBuildAppBundle;
+            if (AndroidTargetArchitectures != AndroidArchitecture.None)
+            {
+                PlayerSettings.Android.targetArchitectures = AndroidTargetArchitectures;
+            }
         }
 
         public BuildTarget CalculateTarget()

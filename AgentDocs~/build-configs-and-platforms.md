@@ -110,9 +110,13 @@ available. Route platform-specific behaviour through `BuildUtils`, not `switch` 
   `GetPlatformExtension` maps them to `.exe`, `.app`, `.x86_64`.
 - **Architecture is Standalone-only.** `BuildUtils.Architecture` is `x64 | ARM64 | x64ARM64 | x86`
   (`x64ARM64` macOS-only, `x86` Windows-only). `DrawArchitecturePopup` returns the input unchanged for
-  other groups.
-- **Android** extension is `.aab` with the bundle flag, else `.apk`. `BuildProfileWrapper` reads
-  `buildAppBundle` by reflection; `BuildConfig.GetProductExtension` hardcodes `androidBundle: false`.
+  other groups, and `SwitchToBuildTarget` skips `PlayerSettings.SetArchitecture` for Android
+  (`BuildUtils.UsesTargetArchitecture`).
+- **Android.** `BuildConfig` has `AndroidBuildAppBundle` and `AndroidTargetArchitectures` (saved as an int,
+  because `AndroidArchitecture` flags differ between versions; configs saved without them take the editor's
+  current settings). `ApplySettings` applies them through `ApplyAndroidSettings` when `TargetPlatform` is Android.
+  The extension is `.aab` with the bundle flag, else `.apk`; `BuildProfileWrapper` reads `buildAppBundle` by
+  reflection.
 - **Module checks.** `IsTargetGroupInstalled` / `IsTargetGroupSupported` are the canonical probes; on
   6000.0+ `IsTargetGroupSupported` calls `BuildPipeline.IsBuildPlatformSupported` by reflection.
   `TrySwitchPlatform` requires a non-zero `TargetPlatformSubTarget` for Standalone (2021.1+), non-`-1` on 6000.0+.
