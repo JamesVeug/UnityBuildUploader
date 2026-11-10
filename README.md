@@ -1,4 +1,4 @@
-<p align="center"><img src="https://github.com/JamesVeug/UnityBuildUploader/blob/main/Assets/LargeIcon.png?raw=true" alt="MAS Logo"></p>
+<p align="center"><img src="https://github.com/JamesVeug/UnityBuildUploader/blob/main/Assets/LargeIcon.png?raw=true" alt="Build Uploader Logo"></p>
 
 <h1 align="center">Build Uploader</h1>
 
@@ -12,20 +12,20 @@
 
 <hr>
 
-[![LICENSE](https://img.shields.io/github/license/JamesVeug/UnityBuildUploader)](LICENSE)
-[![GitHub Issues Open](https://img.shields.io/github/issues/JamesVeug/UnityBuildUploader.svg?maxAge=2592000)]()
-[![GitHub Issues Closed](https://img.shields.io/github/issues-closed-raw/JamesVeug/UnityBuildUploader.svg?maxAge=2592000)]()
-[![Github Release Downloads](https://img.shields.io/github/downloads/JamesVeug/UnityBuildUploader/total.svg)]()
+[![LICENSE](https://img.shields.io/github/license/JamesVeug/UnityBuildUploader)](LICENSE.md)
+[![GitHub Issues Open](https://img.shields.io/github/issues/JamesVeug/UnityBuildUploader.svg?maxAge=2592000)](https://github.com/JamesVeug/UnityBuildUploader/issues)
+[![GitHub Issues Closed](https://img.shields.io/github/issues-closed-raw/JamesVeug/UnityBuildUploader.svg?maxAge=2592000)](https://github.com/JamesVeug/UnityBuildUploader/issues?q=is%3Aissue+is%3Aclosed)
+[![Github Release Downloads](https://img.shields.io/github/downloads/JamesVeug/UnityBuildUploader/total.svg)](https://github.com/JamesVeug/UnityBuildUploader/releases)
 [![STARS](https://img.shields.io/github/stars/JamesVeug/UnityBuildUploader)](https://github.com/JamesVeug/UnityBuildUploader)
 
 ## Key Points 💡
-- Windows, Mac, Linux support
+- Windows, Mac, Linux, Android support
 - Unity Supported (Light and Dark)
-  - Unity 6000.1-7
+  - Unity 6000.0-7
   - Unity 202x
   - Unity 2020 and 2019
     - Requires package [com.unity.sharp-zip-lib](https://docs.unity3d.com/Packages/com.unity.sharp-zip-lib@1.3/manual/Installation.html)
-- Create multiple builds using Build Configs or Unity's Build Profiles.
+- Create multiple builds using Build Configs or Unity's Build Profiles. (Dry run supported)
   - Windows, Mac, Linux, Webgl (Others loosely supported via Unity's Build Profiles)
 - Tiny build size impact
 - For personal and commercial use
@@ -34,6 +34,7 @@
   - Remove files/folders
   - Compress/Decompress files
   - DRM wrap (anti-piracy)
+- Build Addressables (Unity 2021.2 and up, requires [com.unity.addressables](https://docs.unity3d.com/Packages/com.unity.addressables@latest) 1.19.4 or newer)
 
 ### Interface
 #### Simple and Advanced GUI support
@@ -41,12 +42,17 @@
 
 #### Non-UI support
 ```csharp
+using System.Threading.Tasks;
+using UnityEditor;
+using UnityEngine;
+using Wireframe;
+
 [MenuItem("Test/Create new Task and Upload to Steam")]
 public static async Task StartTask()
 {
     UploadConfig config = new UploadConfig();
     
-    // Create a build using a custom Build Profile
+    // Create a build using a custom Build Profile (Unity 6 and up. Use BuildConfigSource on older versions)
     config.AddSource(new BuildProfileSource("Windows Development"));
     
     // Build to this directory. {buildNumber} will be replaced with a locally stored incremental number
@@ -65,6 +71,11 @@ public static async Task StartTask()
 ```
 
 ```csharp
+using System.Threading.Tasks;
+using UnityEditor;
+using UnityEngine;
+using Wireframe;
+
 [MenuItem("Test/Upload Existing Profile")]
 public static async Task StartTask2()
 {
@@ -83,7 +94,7 @@ public static async Task StartTask2()
 
 `"C:\Program Files\Unity\Hub\Editor\<Unity Version>\Editor\Unity.exe" -nographics -batchmode -logFile logs.log -projectPath  "<Path To Your Unity Project>" -executeMethod Wireframe.BatchModeUtil.Execute -uploadProfile 41cf5e`
 
-Replace `41cf5e` with the `GUID or `Name` of your Upload Profile. Repeat `-uploadProfile` to run several.
+Replace `41cf5e` with the `GUID` or `Name` of your Upload Profile. Repeat `-uploadProfile` to run several.
 
 Optional arguments:
 - `-dryRun` makes local changes but nothing leaves the local PC (eg: Steam does a preview upload)
@@ -95,9 +106,11 @@ Don't pass `-quit`: Build Uploader exits Unity itself when the tasks finish, wit
 
 #### **Unity's command CLI**
 
+Requires the `com.unity.pipeline` package, which provides the `unity` CLI.
+
 `unity command build_uploader --start_tasks "41cf5e"`
 
-Replace `41cf5e` with the `GUID or `Name` of your Upload Profile
+Replace `41cf5e` with the `GUID` or `Name` of your Upload Profile
 
 ### Services
   - Steamworks
@@ -111,7 +124,7 @@ Replace `41cf5e` with the `GUID or `Name` of your Upload Profile
     - Upload builds to Google Drive
     - Upload builds to Google Play
     - Send message to Google Chat
-  - Apple (Unity 2022 and up) (Experimental)
+  - Apple (Unity 2022.3 and up) (Experimental)
     - Upload builds to Apple
     - Add build to Test Flight
   - Dropbox (Experimental)
@@ -122,16 +135,18 @@ Replace `41cf5e` with the `GUID or `Name` of your Upload Profile
     - Upload a build
   - Nintendo (Experimental)
     - Upload a build
+    - Send upload details to your own webhook
   - Git
     - Format text according to current git state 
     - Create and push Tags
   - Github
     - Upload a new Release
   - Discord
-    - Send message to a channel
+    - Send message to a channel using webhooks or an app
   - Slack
     - Send message to a channel
-  - Email
+    - Update a message sent earlier in the upload
+  - Email (Experimental)
     - Send customized emails
   - Unity Cloud Build
     - View, download and start builds
@@ -159,7 +174,7 @@ Prefer a fully headless run with no Editor open?
 
 
 ## Security 🔒
-This package does NOT distribute any personal information. Any information entered is encrypted locally on your computer.
+This package does NOT distribute any personal information. Credentials such as tokens and passwords remain obfuscated on your computer and never included in your project files.
 
 Keeping your credentials safe is important to me!
 

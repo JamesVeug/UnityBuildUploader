@@ -1,3 +1,75 @@
+# 3.4.0
+
+## Highlights
+- Added Android support
+- Build Uploader Window has a new simplified view when the window is very thin
+- Added Dry Run UI to test making builds without actually uploading or executing actions
+- Can now build addressables
+- Can now send messages to discord using webhooks
+- Moved Build Uploader menu items to `Tools/Build Uploader`
+- Fixed Upload Tasks stopping if code compiles during a build
+- Fixed projects without `com.unity.pipeline` package throwing exceptions
+- Fixed compile errors on early Unity 6000.0 versions
+
+## What's new
+- Added Dry-Run support to the UI and BatchMode (Better handling with services too)
+- Added `Build Addressables` toggle to all Build Sources
+- Added `Build Addressables` Action
+- Added Discord Web Hook Action
+- Steamworks Auth button to check if you're verified and asks you to login without needing the console
+- Added Update button to the Build Uploader window (Disableable in preferences)
+- Added `Skip Number Updates` project setting to stop builds and uploads rewriting ProjectSettings.json
+- Added `Invoke Static Method` Action to run a project's own static method
+- Added live upload task reports that are written when a task starts and updated as it runs, so an interrupted task still leaves a report showing how far it got
+- Added Menu items to indivisual source/modifier/destination/actions to move them up/down... etc
+- Added right-click context menu option to Local Destinations path button to "Open in Explorer"
+- Added preference toggle to open explorer when builds complete successfully (on by default)
+- Added Android App Bundle to Build Settings
+- Added Android Target Architecture to Build settings
+- Added Android keystore support
+- BatchUtils: Added `-dryRun`, `-uploadDescription` and `-uploadReportFile` to batch mode, and exits when a profile is missing or an upload fails
+- Basic AI agent documentation
+
+## What's Changed
+- Moved Build Uploader menu items to `Tools/Build Uploader`
+- Added Thin view of the Build Uploader Window that is visible when the width is low
+- `Upload All` button text changed to `Run All` to be more expressive of what it does
+- Steam Depot dropdown shows ids for when depots have the same id
+- Added a new depot will set the new id to +1 the previous depot or app id
+- Removed confirmation window when duplicate Upload Configs
+- Welcome Window wall of text trimmed
+- Embeds for Discord,Slack,Emails now have a formatable field
+- Small UI QOL fixes
+
+## What's Fixed
+- Fixed Upload Tasks stopping if code compiles during a build
+- Fixed projects without `com.unity.pipeline` package throwing exceptions
+- Fixed compile errors on early Unity 6000.0 versions
+- Fixed failing pre-build actions not stopping the upload task
+- Fixed builds being deleted when the first Local Destination is disabled
+- Fixes for all platforms regarding showing the console when pressing the CMD button
+- Fixed pressing enter to pick a format string suggestion from losing focus on Unity 6
+- Fixed paths being cleared when cancelling out of choose folder dialogue
+- Fixed CLIs dry run from executing actions
+- Fixed making builds using Build Profiles not using specific settings
+- Fixed actions, sources, modifiers and destinations outside the core assembly not reloading
+- Fixed upload tasks reporting success when a step failed without a reason but report says it failed
+- Fixed Steam Depot ID field being impossible to clear and depots without an ID
+- Fixed Steam depots merging and Depot IDs that could not be cleared or were never checked
+- Fixed Slack attachment text not formatted
+- Fixed choosing 'Choose Source' or 'Choose Destination' in an expanded Upload Config throwing a NullReferenceException
+- Fixed Welcome Window opening when running tests or batch mode
+- Fixed package minimum Unity version requirements
+- Fixed a Unity 7000 error
+- Fixed builds made using batch mode showing as 0ms
+- Obfuscated more info that could appear in the task reports
+- Windows: Fixed paths not saving to JSON correctly
+- Linux & Mac: Command line fixes to work more natively
+- Linux: Fixed needing to log into Steam every upload
+- Android: Fixed builds failing even though the build succeeded
+- Android: Fixed app bundle builds showing up as .apk
+
+
 # 3.3.0
 
 ## Highlights
