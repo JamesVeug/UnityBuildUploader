@@ -43,7 +43,7 @@ namespace Wireframe
                 "&client_secret=" + Uri.EscapeDataString(clientSecret) +
                 "&resource=https%3A%2F%2Fmanage.devcenter.microsoft.com";
 
-            using (RequestWrapper www = RequestWrapper.Post(url))
+            using (RequestWrapper www = RequestWrapper.Post(url, "https://login.microsoftonline.com/xxx/oauth2/token"))
             {
                 www.SetFormData(formBody);
 
@@ -78,7 +78,7 @@ namespace Wireframe
         {
             string url = $"{ApiBase}/{productId}";
 
-            using (RequestWrapper www = RequestWrapper.Get(url))
+            using (RequestWrapper www = RequestWrapper.Get(url, $"{ApiBase}/xxx"))
             {
                 www.SetRequestHeader("Authorization", $"Bearer {token}");
 
@@ -108,7 +108,7 @@ namespace Wireframe
         {
             string url = $"{ApiBase}/{productId}/submissions/{submissionId}";
 
-            using (RequestWrapper www = RequestWrapper.Delete(url))
+            using (RequestWrapper www = RequestWrapper.Delete(url, $"{ApiBase}/xxx/submissions/xxx"))
             {
                 www.SetRequestHeader("Authorization", $"Bearer {token}");
 
@@ -136,7 +136,7 @@ namespace Wireframe
         {
             string url = $"{ApiBase}/{productId}/submissions";
 
-            using (RequestWrapper www = RequestWrapper.Post(url))
+            using (RequestWrapper www = RequestWrapper.Post(url, $"{ApiBase}/xxx/submissions"))
             {
                 www.SetRequestHeader("Authorization", $"Bearer {token}");
                 // Body can be empty — the API clones the last published submission
@@ -179,7 +179,7 @@ namespace Wireframe
             result?.AddLog($"Xbox: Reading package from {zipFilePath}...");
             byte[] zipBytes = File.ReadAllBytes(zipFilePath);
 
-            using (RequestWrapper www = RequestWrapper.Put(fileUploadUrl))
+            using (RequestWrapper www = RequestWrapper.Put(fileUploadUrl, "https://xxx.blob.core.windows.net/xxx?xxx"))
             {
                 www.SetOctetStreamData(zipBytes);
                 www.SetRequestHeader("x-ms-blob-type", "BlockBlob");
@@ -209,7 +209,7 @@ namespace Wireframe
         {
             string url = $"{ApiBase}/{productId}/submissions/{submissionId}/commit";
 
-            using (RequestWrapper www = RequestWrapper.Post(url))
+            using (RequestWrapper www = RequestWrapper.Post(url, $"{ApiBase}/xxx/submissions/xxx/commit"))
             {
                 www.SetRequestHeader("Authorization", $"Bearer {token}");
                 www.SetJSONData("{}");
@@ -242,7 +242,7 @@ namespace Wireframe
 
             for (int i = 0; i < maxRetries; i++)
             {
-                using (RequestWrapper www = RequestWrapper.Get(url))
+                using (RequestWrapper www = RequestWrapper.Get(url, $"{ApiBase}/xxx/submissions/xxx/status"))
                 {
                     www.SetRequestHeader("Authorization", $"Bearer {token}");
 

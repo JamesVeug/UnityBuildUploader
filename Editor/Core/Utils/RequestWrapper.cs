@@ -30,14 +30,32 @@ namespace Wireframe
         }
     }
     
+    /// <summary>
+    /// A wrapper for sending web requests from Unity so
+    /// - Sending a request via different unity versions has 1 entry point
+    /// - Any sensitive information is hidden (tokens, secrets... etc)
+    /// - Any requests sent a logged to the task report to assist with debugging 
+    /// </summary>
     public class RequestWrapper : IDisposable
     {
-        private UnityWebRequest www;
+        public const string MaskedSecret = "xxx-xxx-xxx";
 
-        public RequestWrapper(string url, string method)
+        private UnityWebRequest www;
+        private string m_maskedURL;
+
+        /// <summary>
+        /// maskedURL is written to the task report instead of url, so it must not contain secrets. Pass url when it has none.
+        /// </summary>
+        public RequestWrapper(string url, string maskedURL, string method)
         {
+            if (maskedURL == null)
+            {
+                throw new ArgumentNullException(nameof(maskedURL), "Pass the url itself when it holds no secrets.");
+            }
+
             www = new UnityWebRequest(url, method);
             www.downloadHandler = new DownloadHandlerBuffer();
+            m_maskedURL = maskedURL;
         }
         
         ~RequestWrapper()
@@ -55,7 +73,7 @@ namespace Wireframe
 
         public async Task<RequestResult> SendAsync(UploadTaskReport.StepResult result, bool updateProgress = false)
         {
-            result?.AddLog("Sending request: " + www.method + " " + www.url);
+            result?.AddLog("Sending request: " + www.method + " " + m_maskedURL);
             
             Stopwatch stopwatch = new Stopwatch();
             UnityWebRequestAsyncOperation operation = www.SendWebRequest();
@@ -78,38 +96,77 @@ namespace Wireframe
                 return RequestResult.Failed(error);
             }
             
-            result?.AddLog($"Request successful: {www.method} {www.url} - responseCode = {www.responseCode} over {duration}");
+            result?.AddLog($"Request successful: {www.method} {m_maskedURL} - responseCode = {www.responseCode} over {duration}");
             return RequestResult.Successful(www.downloadHandler.text, www.downloadHandler.data);
         }
-        
-        public static RequestWrapper Post(string url)
+
+        public static RequestWrapper Post(string url, string maskedURL)
         {
-            RequestWrapper requestWrapper = new RequestWrapper(url, "POST");
-            return requestWrapper;
-        } 
-        
-        public static RequestWrapper Get(string url)
-        {
-            RequestWrapper requestWrapper = new RequestWrapper(url, "GET");
-            return requestWrapper;
-        }
-        
-        public static RequestWrapper Delete(string url)
-        {
-            RequestWrapper requestWrapper = new RequestWrapper(url, "DELETE");
-            return requestWrapper;
+            return new RequestWrapper(url, maskedURL, "POST");
         }
 
-        public static RequestWrapper Patch(string url)
+        public static RequestWrapper Get(string url, string maskedURL)
         {
-            RequestWrapper requestWrapper = new RequestWrapper(url, "PATCH");
-            return requestWrapper;
+            return new RequestWrapper(url, maskedURL, "GET");
         }
 
-        public static RequestWrapper Put(string url)
+        public static RequestWrapper Delete(string url, string maskedURL)
         {
-            RequestWrapper requestWrapper = new RequestWrapper(url, "PUT");
-            return requestWrapper;
+            return new RequestWrapper(url, maskedURL, "DELETE");
+        }
+
+        public static RequestWrapper Patch(string url, string maskedURL)
+        {
+            return new RequestWrapper(url, maskedURL, "PATCH");
+        }
+
+        public static RequestWrapper Put(string url, string maskedURL)
+        {
+            return new RequestWrapper(url, maskedURL, "PUT");
+        }
+
+        /// <summary>
+        /// Replaces every query value, for signed or keyed URLs. eg: https://a.com/b?key=xxx-xxx-xxx
+        /// </summary>
+        public static string MaskQuery(string url)
+        {
+            if (string.IsNullOrEmpty(url))
+            {
+                return url;
+            }
+
+            int queryStart = url.IndexOf('?');
+            if (queryStart < 0)
+            {
+                return url;
+            }
+
+            string[] parameters = url.Substring(queryStart + 1).Split('&');
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                int equals = parameters[i].IndexOf('=');
+                parameters[i] = (equals < 0 ? parameters[i] : parameters[i].Substring(0, equals)) + "=" + MaskedSecret;
+            }
+
+            return url.Substring(0, queryStart + 1) + string.Join("&", parameters);
+        }
+
+        /// <summary>
+        /// Keeps only the scheme and host, for webhook URLs whose path is the secret. eg: https://a.com/xxx-xxx-xxx
+        /// </summary>
+        public static string MaskPathAndQuery(string url)
+        {
+            if (string.IsNullOrEmpty(url))
+            {
+                return url;
+            }
+
+            if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
+            {
+                return MaskedSecret;
+            }
+
+            return uri.GetLeftPart(UriPartial.Authority) + "/" + MaskedSecret;
         }
 
         public void SetRequestHeader(string key, string value)

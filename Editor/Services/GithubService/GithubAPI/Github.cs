@@ -69,7 +69,7 @@ namespace Wireframe
             
             string jsonPayload = JSON.SerializeObject(payload);
             
-            using(RequestWrapper www = RequestWrapper.Post(url))
+            using(RequestWrapper www = RequestWrapper.Post(url, "https://api.github.com/repos/xxx/xxx/releases"))
             {
                 www.SetJSONData(jsonPayload);
                 www.SetRequestHeader("Accept", "application/vnd.github+json");
@@ -135,7 +135,7 @@ namespace Wireframe
                 }
 
                 string url = $"{uploadUrl}?name={assetName}";
-                using (RequestWrapper www = RequestWrapper.Post(url))
+                using (RequestWrapper www = RequestWrapper.Post(url, "https://uploads.github.com/repos/xxx/xxx/releases/xxx/assets?name=xxx"))
                 {
                     www.SetOctetStreamData(fileContent);
                     www.SetRequestHeader("Accept", "application/vnd.github+json");

@@ -184,7 +184,7 @@ namespace Wireframe
             UpdateChecker.NotifyChanged();
             try
             {
-                using (RequestWrapper www = RequestWrapper.Get(release.UnityPackageUrl))
+                using (RequestWrapper www = RequestWrapper.Get(release.UnityPackageUrl, "https://github.com/JamesVeug/UnityBuildUploader/releases/download/xxx/xxx"))
                 {
                     RequestResult result = await www.SendAsync(null);
                     if (!result.IsSuccessful || result.Bytes == null || result.Bytes.Length == 0)

@@ -30,7 +30,7 @@ namespace Wireframe
                 { "text", text }
             };
 
-            using (RequestWrapper www = RequestWrapper.Post(webhookUrl))
+            using (RequestWrapper www = RequestWrapper.Post(webhookUrl, "https://chat.googleapis.com/v1/spaces/xxx/messages?key=xxx&token=xxx"))
             {
                 www.SetJSONData(messageData);
 

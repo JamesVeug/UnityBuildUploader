@@ -68,7 +68,7 @@ namespace Wireframe
                 messageData["attachments"] = attachmentsList;
             }
 
-            using (RequestWrapper www = RequestWrapper.Post(url))
+            using (RequestWrapper www = RequestWrapper.Post(url, "https://slack.com/api/chat.postMessage"))
             {
                 www.SetJSONData(messageData);
                 www.SetRequestHeader("Authorization", $"Bearer {token}");
@@ -191,7 +191,7 @@ namespace Wireframe
                 messageData["attachments"] = attachmentsList;
             }
 
-            using (RequestWrapper www = RequestWrapper.Post(url))
+            using (RequestWrapper www = RequestWrapper.Post(url, "https://slack.com/api/chat.update"))
             {
                 www.SetJSONData(messageData);
                 www.SetRequestHeader("Authorization", $"Bearer {token}");

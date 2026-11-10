@@ -256,7 +256,7 @@ namespace Wireframe
             // project id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
             string url = "https://build-api.cloud.unity3d.com/api/v1/orgs/{0}/projects/{1}/buildtargets";
             string parsed = string.Format(url, UnityCloud.Instance.Organization, UnityCloud.Instance.Project);
-            RequestWrapper www = RequestWrapper.Get(parsed);
+            RequestWrapper www = RequestWrapper.Get(parsed, "https://build-api.cloud.unity3d.com/api/v1/orgs/xxx/projects/xxx/buildtargets");
             www.SetRequestHeader("Content-Type", "application/json");
             www.SetRequestHeader("Authorization", "Basic " + UnityCloud.Instance.Secret);
 
@@ -277,7 +277,7 @@ namespace Wireframe
 
             string parsed = string.Format(url, UnityCloud.Instance.Organization, UnityCloud.Instance.Project,
                 target.buildtargetid);
-            RequestWrapper www = RequestWrapper.Get(parsed);
+            RequestWrapper www = RequestWrapper.Get(parsed, "https://build-api.cloud.unity3d.com/api/v1/orgs/xxx/projects/xxx/buildtargets/xxx/builds" + (onlySuccessful ? "?buildStatus=success" : ""));
             www.SetRequestHeader("Content-Type", "application/json");
             www.SetRequestHeader("Authorization", "Basic " + UnityCloud.Instance.Secret);
 
@@ -295,7 +295,7 @@ namespace Wireframe
                 for (int j = 0; j < artifacts[i].files.Count; j++)
                 {
                     UnityCloudBuild.ArtifactBuild artifactBuild = artifacts[i].files[j];
-                    RequestWrapper request = RequestWrapper.Get(artifactBuild.href);
+                    RequestWrapper request = RequestWrapper.Get(artifactBuild.href, RequestWrapper.MaskQuery(artifactBuild.href));
                     operations.Add(request.SendAsync(null));
 
                     // directory/game-windows-development-71.zip
@@ -338,7 +338,7 @@ namespace Wireframe
 
             string urlParsed = string.Format(url, UnityCloud.Instance.Organization, UnityCloud.Instance.Project, buildTargetID);
 
-            RequestWrapper www = RequestWrapper.Post(urlParsed);
+            RequestWrapper www = RequestWrapper.Post(urlParsed, "https://build-api.cloud.unity3d.com/api/v1/orgs/xxx/projects/xxx/buildtargets/xxx/builds");
             www.SetRequestHeader("Authorization", "Basic " + UnityCloud.Instance.Secret);
             www.SetJSONData(data);
 
@@ -353,7 +353,7 @@ namespace Wireframe
             string url = "https://build-api.cloud.unity3d.com/api/v1/orgs/{0}/projects/{1}/buildtargets/{2}/builds/{3}";
 
             string urlParsed = string.Format(url, UnityCloud.Instance.Organization, UnityCloud.Instance.Project, buildTargetID, buildNumber);
-            RequestWrapper www = RequestWrapper.Delete(urlParsed);
+            RequestWrapper www = RequestWrapper.Delete(urlParsed, "https://build-api.cloud.unity3d.com/api/v1/orgs/xxx/projects/xxx/buildtargets/xxx/builds/xxx");
             www.SetRequestHeader("Content-Type", "application/json");
             www.SetRequestHeader("Authorization", "Basic " + UnityCloud.Instance.Secret);
 

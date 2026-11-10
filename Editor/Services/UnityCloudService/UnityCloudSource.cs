@@ -66,9 +66,9 @@ namespace Wireframe
                     }
                 }
 
-                stepResult.AddLog("Downloading from: " + downloadUrl);
+                stepResult.AddLog("Downloading from: " + RequestWrapper.MaskQuery(downloadUrl));
 
-                using (RequestWrapper request = RequestWrapper.Get(downloadUrl))
+                using (RequestWrapper request = RequestWrapper.Get(downloadUrl, RequestWrapper.MaskQuery(downloadUrl)))
                 {
                     var response = await request.SendAsync(stepResult, true);
                     if (!response.IsSuccessful)

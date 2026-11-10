@@ -83,7 +83,7 @@ namespace Wireframe
 
             string url = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink";
 
-            using (RequestWrapper www = RequestWrapper.Post(url))
+            using (RequestWrapper www = RequestWrapper.Post(url, "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink"))
             {
                 // SetOctetStreamData sets the upload body. We override Content-Type
                 // immediately afterwards because Drive requires multipart/related.

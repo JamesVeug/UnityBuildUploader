@@ -119,7 +119,7 @@ namespace Wireframe
         {
             string url = $"https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{packageName}/edits/{editId}";
 
-            using (RequestWrapper www = RequestWrapper.Delete(url))
+            using (RequestWrapper www = RequestWrapper.Delete(url, "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/xxx/edits/xxx"))
             {
                 www.SetRequestHeader("Authorization", $"Bearer {accessToken}");
 
@@ -139,7 +139,7 @@ namespace Wireframe
         {
             string url = $"https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{packageName}/edits";
 
-            using (RequestWrapper www = RequestWrapper.Post(url))
+            using (RequestWrapper www = RequestWrapper.Post(url, "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/xxx/edits"))
             {
                 // The body must be a valid empty JSON object; the API rejects a zero-length body.
                 www.SetJSONData(new Dictionary<string, object>());
@@ -196,7 +196,7 @@ namespace Wireframe
 
             string url = $"https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications/{packageName}/edits/{editId}/{segment}?uploadType=media";
 
-            using (RequestWrapper www = RequestWrapper.Post(url))
+            using (RequestWrapper www = RequestWrapper.Post(url, "https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications/xxx/edits/xxx/xxx?uploadType=media"))
             {
                 // SetOctetStreamData sets both body and content-type; for APKs we override
                 // the content-type to the Android package mime so Play recognizes the
@@ -278,7 +278,7 @@ namespace Wireframe
                 { "releases", new List<Dictionary<string, object>> { release } }
             };
 
-            using (RequestWrapper www = RequestWrapper.Put(url))
+            using (RequestWrapper www = RequestWrapper.Put(url, "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/xxx/edits/xxx/tracks/xxx"))
             {
                 www.SetJSONData(body);
                 www.SetRequestHeader("Authorization", $"Bearer {accessToken}");
@@ -299,7 +299,7 @@ namespace Wireframe
         {
             string url = $"https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{packageName}/edits/{editId}:commit";
 
-            using (RequestWrapper www = RequestWrapper.Post(url))
+            using (RequestWrapper www = RequestWrapper.Post(url, "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/xxx/edits/xxx:commit"))
             {
                 // Commit takes no body.
                 www.SetJSONData(new Dictionary<string, object>());

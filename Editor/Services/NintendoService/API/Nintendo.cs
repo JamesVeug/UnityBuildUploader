@@ -25,7 +25,7 @@ namespace Wireframe
                 { "text", text },
             };
 
-            using (RequestWrapper www = RequestWrapper.Post(webhookUrl))
+            using (RequestWrapper www = RequestWrapper.Post(webhookUrl, RequestWrapper.MaskPathAndQuery(webhookUrl)))
             {
                 www.SetJSONData(messageData);
                 if (!string.IsNullOrEmpty(token))

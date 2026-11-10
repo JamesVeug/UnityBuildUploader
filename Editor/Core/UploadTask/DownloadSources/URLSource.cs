@@ -82,9 +82,9 @@ namespace Wireframe
             // Only download if we don't have it
             if (!File.Exists(fullFilePath))
             {
-                stepResult.AddLog("Downloading from URL: " + url);
+                stepResult.AddLog("Downloading from URL: " + RequestWrapper.MaskQuery(url));
 
-                RequestWrapper request = new RequestWrapper(url, m_method.ToString());
+                RequestWrapper request = new RequestWrapper(url, RequestWrapper.MaskQuery(url), m_method.ToString());
                 request.SetHeaders(m_headers);
 
                 RequestResult result = await request.SendAsync(stepResult, true);

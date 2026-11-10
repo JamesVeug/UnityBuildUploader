@@ -69,7 +69,7 @@ namespace Wireframe
             string apiArgJson = JSON.SerializeObject(apiArg);
 
             const string url = "https://content.dropboxapi.com/2/files/upload";
-            using (RequestWrapper www = RequestWrapper.Post(url))
+            using (RequestWrapper www = RequestWrapper.Post(url, "https://content.dropboxapi.com/2/files/upload"))
             {
                 // SetOctetStreamData also sets Content-Type to application/octet-stream,
                 // which is what Dropbox expects for the upload body.
@@ -137,7 +137,7 @@ namespace Wireframe
             };
 
             const string url = "https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings";
-            using (RequestWrapper www = RequestWrapper.Post(url))
+            using (RequestWrapper www = RequestWrapper.Post(url, "https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings"))
             {
                 www.SetJSONData(body);
                 www.SetRequestHeader("Authorization", $"Bearer {accessToken}");
@@ -169,7 +169,7 @@ namespace Wireframe
             };
 
             const string url = "https://api.dropboxapi.com/2/sharing/list_shared_links";
-            using (RequestWrapper www = RequestWrapper.Post(url))
+            using (RequestWrapper www = RequestWrapper.Post(url, "https://api.dropboxapi.com/2/sharing/list_shared_links"))
             {
                 www.SetJSONData(body);
                 www.SetRequestHeader("Authorization", $"Bearer {accessToken}");

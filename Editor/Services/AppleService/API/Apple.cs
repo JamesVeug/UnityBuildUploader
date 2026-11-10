@@ -81,7 +81,7 @@ namespace Wireframe
 
             while (DateTime.UtcNow < deadline)
             {
-                using (RequestWrapper www = RequestWrapper.Get(url))
+                using (RequestWrapper www = RequestWrapper.Get(url, ApiBaseUrl + "/v1/builds?filter[app]=xxx&filter[preReleaseVersion.version]=xxx&filter[version]=xxx&sort=-uploadedDate&limit=1"))
                 {
                     www.SetRequestHeader("Authorization", "Bearer " + jwt);
                     www.SetRequestHeader("Accept", "application/json");
@@ -130,7 +130,7 @@ namespace Wireframe
             }
 
             string url = $"{ApiBaseUrl}/v1/apps/{Uri.EscapeDataString(appStoreConnectAppId)}";
-            using (RequestWrapper www = RequestWrapper.Get(url))
+            using (RequestWrapper www = RequestWrapper.Get(url, $"{ApiBaseUrl}/v1/apps/xxx"))
             {
                 www.SetRequestHeader("Authorization", "Bearer " + jwt);
                 www.SetRequestHeader("Accept", "application/json");
@@ -191,7 +191,7 @@ namespace Wireframe
                 }
             };
 
-            using (RequestWrapper www = RequestWrapper.Post(url))
+            using (RequestWrapper www = RequestWrapper.Post(url, $"{ApiBaseUrl}/v1/betaGroups/xxx/relationships/builds"))
             {
                 www.SetJSONData(body);
                 www.SetRequestHeader("Authorization", "Bearer " + jwt);

@@ -45,7 +45,7 @@ namespace Wireframe
                 return true;
             }
 
-            using (RequestWrapper www = RequestWrapper.Post(url))
+            using (RequestWrapper www = RequestWrapper.Post(url, "https://discord.com/api/v10/channels/xxx/messages"))
             {
                 www.SetJSONData(messageData);
                 if (isBot)
@@ -72,7 +72,7 @@ namespace Wireframe
         public static async Task<bool> GetMe(string token, bool isBot)
         {
             string url = "https://discord.com/api/v10/users/@me";
-            RequestWrapper request = RequestWrapper.Get(url);
+            RequestWrapper request = RequestWrapper.Get(url, "https://discord.com/api/v10/users/@me");
             if (isBot)
             {
                 request.SetRequestHeader("Authorization", $"Bot {token}");
@@ -98,7 +98,7 @@ namespace Wireframe
         public static async Task<bool> GetServers(string token, bool isBot)
         {
             string url = $"https://discord.com/api/v10/@me/guids";
-            RequestWrapper request = RequestWrapper.Get(url);
+            RequestWrapper request = RequestWrapper.Get(url, "https://discord.com/api/v10/@me/guids");
             if (isBot)
             {
                 request.SetRequestHeader("Authorization", $"Bot {token}");

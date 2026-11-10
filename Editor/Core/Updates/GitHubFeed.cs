@@ -36,23 +36,25 @@ namespace Wireframe
 
         public Task<RequestResult> DownloadReleasesAsync()
         {
-            return DownloadAsync(ApiUrl + "/releases?per_page=20");
+            return DownloadAsync(ApiUrl + "/releases?per_page=20", ApiUrl + "/releases?per_page=20");
         }
 
         public Task<RequestResult> DownloadCommitsAsync(string branch)
         {
             string url = ApiUrl + "/commits?per_page=" + CommitsPerCheck;
+            string maskedURL = url;
             if (!string.IsNullOrEmpty(branch))
             {
                 url += "&sha=" + Uri.EscapeDataString(branch);
+                maskedURL += "&sha=xxx";
             }
 
-            return DownloadAsync(url);
+            return DownloadAsync(url, maskedURL);
         }
 
-        private static async Task<RequestResult> DownloadAsync(string url)
+        private static async Task<RequestResult> DownloadAsync(string url, string maskedURL)
         {
-            using (RequestWrapper www = RequestWrapper.Get(url))
+            using (RequestWrapper www = RequestWrapper.Get(url, maskedURL))
             {
                 www.SetRequestHeader("Accept", "application/vnd.github+json");
                 return await www.SendAsync(null);
