@@ -17,6 +17,8 @@ namespace Wireframe
     /// </summary>
     public partial class UploadTask
     {
+        private const int NoProgress = -1;
+
         internal static List<UploadTask> AllTasks = new List<UploadTask>();
         private static readonly TimeSpan ReportWriteInterval = TimeSpan.FromSeconds(5);
         
@@ -48,7 +50,7 @@ namespace Wireframe
         private UploadTaskStringFormatterContext m_context;
         private string[] m_cachedLocations;
         private bool[] m_cachedLocationNeedsCleaning;
-        private int m_progressId;
+        private int m_progressId = NoProgress;
         private int m_totalSteps;
         
         private string m_uploadName;
@@ -102,14 +104,6 @@ namespace Wireframe
             m_actions = new List<UploadConfig.UploadActionData>();
             
             m_context = new UploadTaskStringFormatterContext(this);
-        }
-
-        ~UploadTask()
-        {
-            if (ProgressUtils.Exists(m_progressId))
-            {
-                ProgressUtils.Remove(m_progressId);
-            }
         }
 
         /// <summary>
@@ -233,7 +227,6 @@ namespace Wireframe
                 await Execute(steps, startStep);
                 if (m_debugForceStopTask)
                 {
-                    ProgressUtils.Remove(m_progressId);
                     return;
                 }
 
@@ -241,7 +234,7 @@ namespace Wireframe
                 PercentComplete = 1f;
                 IsSuccessful = m_report.Successful && !IsCancelled;
 
-                ProgressUtils.Remove(m_progressId);
+                RemoveProgress();
                 m_report.Complete();
                 WriteReportFile();
                 await m_reportWrite;
@@ -253,6 +246,7 @@ namespace Wireframe
             }
             finally
             {
+                RemoveProgress();
                 if (!m_debugForceStopTask)
                 {
                     s_liveTasks.Remove(m_guid);
@@ -588,6 +582,17 @@ namespace Wireframe
             
             ProgressUtils.Remove(postActionID);
             return !stopTask;
+        }
+
+        private void RemoveProgress()
+        {
+            if (m_progressId == NoProgress)
+            {
+                return;
+            }
+
+            ProgressUtils.Remove(m_progressId);
+            m_progressId = NoProgress;
         }
 
         private void SetProgress(int step, float percent, string message)

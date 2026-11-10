@@ -280,7 +280,8 @@ namespace Wireframe.UnitTest
 
             InvokeStaticMethodAction.Resolution named = InvokeStaticMethodAction.Resolve(typeName + ", BuildUploaderUnitTestSecond.Run", assemblies);
             Assert.IsTrue(named.IsValid, named.Error);
-            Assert.AreEqual(second, named.Method.DeclaringType.Assembly);
+            // By name: on CoreCLR (Unity 7000) the AssemblyBuilder is not the Assembly its types report
+            Assert.AreEqual(second.GetName().Name, named.Method.DeclaringType.Assembly.GetName().Name);
         }
 
         [Test]

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using UnityEngine.TestTools;
@@ -84,6 +85,34 @@ namespace Wireframe.UnitTest
             Assert.AreEqual("child", File.ReadAllText(Path.Combine(output, "nested", "child.txt")));
             Assert.IsTrue(File.Exists(Path.Combine(source, "nested", "child.txt")), "The source must not be modified.");
             Assert.IsFalse(Directory.Exists(task.CachedLocations[0]), "The task cache must be deleted after the upload.");
+        }
+
+        [UnityTest]
+        public IEnumerator FinishedTaskRemovesItsProgressWithoutAFinalizer()
+        {
+            // Finalizers run on the GC thread, and Unity 7000 throws when Progress is used off the main thread
+            Assert.IsNull(typeof(UploadTask).GetMethod("Finalize", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly),
+                "UploadTask must not clean up in a finalizer.");
+
+            int before = TaskProgressItems();
+            string source = Fixture("Progress", "root.txt", "root");
+            var succeeds = new UploadTask("Core progress", Config(new FolderSource(source), new LocalPathDestination(Output("Progress"))));
+            yield return Run(succeeds);
+            string missing = Path.Combine(TestSupport.OutputDirectory("ProgressMissing"), "does-not-exist");
+            var fails = new UploadTask("Core progress failure", Config(new FolderSource(missing), new LocalPathDestination(Output("ProgressMissing"))));
+            yield return Execute(fails);
+
+            Assert.IsFalse(fails.IsSuccessful);
+            Assert.AreEqual(before, TaskProgressItems(), "A finished task must remove its progress bar, whether it succeeded or failed.");
+        }
+
+        private static int TaskProgressItems()
+        {
+#if UNITY_2020_2_OR_NEWER
+            return UnityEditor.Progress.EnumerateItems().Count(item => item.name == "Build Uploader Window");
+#else
+            return 0;
+#endif
         }
 
         [UnityTest]
