@@ -170,6 +170,85 @@ namespace Wireframe
             return builder.ToString();
         }
 
+        /// <summary>
+        /// Draws the "F" toggle that swaps a field between its raw text and a read-only formatted preview.
+        /// </summary>
+        public static bool DrawFormatToggle(Rect rect, ref bool pressed, Context ctx)
+        {
+            GUIContent content = new GUIContent("F", GetFormatStringTextFieldTooltip(ctx));
+            bool newPressed = GUI.Toggle(rect, pressed, content, "ToolbarButton");
+            if (newPressed != pressed)
+            {
+                pressed = newPressed;
+                GUI.FocusControl(null); // Deselect the text field so we can see the formatted text
+            }
+
+            return pressed;
+        }
+
+        /// <summary>
+        /// Rect-based <see cref="DrawFormatToggle(Rect, ref bool, Context)"/> that keeps one toggle state per key,
+        /// so each row of a list can be toggled on its own.
+        /// </summary>
+        public static bool DrawFormatToggle<T>(Rect rect, Dictionary<T, bool> toggles, T key, Context ctx)
+        {
+            if (!toggles.TryGetValue(key, out bool pressed))
+            {
+                pressed = Preferences.DefaultShowFormattedTextToggle;
+            }
+
+            DrawFormatToggle(rect, ref pressed, ctx);
+            toggles[key] = pressed;
+            return pressed;
+        }
+
+        /// <summary>
+        /// Rect-based single line field with an "F" toggle at its left. Returns true when the text was edited.
+        /// </summary>
+        public static bool FormatStringTextField<T>(Rect rect, ref string text, Dictionary<T, bool> toggles, T key, Context ctx, string placeholder = null)
+        {
+            return FormatStringText(rect, ref text, toggles, key, ctx, placeholder, true);
+        }
+
+        /// <summary>
+        /// Rect-based multi line field with an "F" toggle at its left. Returns true when the text was edited.
+        /// </summary>
+        public static bool FormatStringTextArea<T>(Rect rect, ref string text, Dictionary<T, bool> toggles, T key, Context ctx)
+        {
+            return FormatStringText(rect, ref text, toggles, key, ctx, null, false);
+        }
+
+        private static bool FormatStringText<T>(Rect rect, ref string text, Dictionary<T, bool> toggles, T key, Context ctx, string placeholder, bool textField)
+        {
+            const float toggleWidth = 20f;
+            Rect toggleRect = new Rect(rect.x, rect.y, toggleWidth, rect.height);
+            Rect fieldRect = new Rect(rect.x + toggleWidth, rect.y, Mathf.Max(0, rect.width - toggleWidth), rect.height);
+
+            if (DrawFormatToggle(toggleRect, toggles, key, ctx))
+            {
+                using (new EditorGUI.DisabledScope(true))
+                {
+                    string displayText = ctx.FormatString(text);
+                    if (textField)
+                        GUI.TextField(fieldRect, displayText);
+                    else
+                        GUI.TextArea(fieldRect, displayText);
+                }
+
+                return false;
+            }
+
+            string current = text ?? "";
+            string newText = textField ? PlaceholderTextField(fieldRect, current, placeholder) : GUI.TextArea(fieldRect, current);
+            if (newText == current)
+            {
+                return false;
+            }
+
+            text = newText;
+            return true;
+        }
+
         public static bool FormatStringTextField(ref string text, ref bool pressed, Context ctx, GUILayoutOption textFieldOption)
         {
             return FormatStringTextField(ref text, ref pressed, ctx, null, textFieldOption);

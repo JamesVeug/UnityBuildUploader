@@ -78,6 +78,28 @@ namespace Wireframe
 
             return slackAttachment;
         }
-        
+
+        /// <summary>
+        /// Returns a copy with the user-facing text run through <see cref="Context.FormatString"/>, leaving this one untouched.
+        /// </summary>
+        public SlackAttachment Format(Context context)
+        {
+            SlackAttachment formatted = (SlackAttachment)MemberwiseClone();
+            formatted.text = context.FormatString(text);
+            formatted.fallback = context.FormatString(fallback);
+            formatted.actions = new List<Action>();
+            foreach (Action action in actions ?? new List<Action>())
+            {
+                formatted.actions.Add(new Action
+                {
+                    name = action.name,
+                    text = context.FormatString(action.text),
+                    type = action.type,
+                    data_source = action.data_source
+                });
+            }
+
+            return formatted;
+        }
     }
 }

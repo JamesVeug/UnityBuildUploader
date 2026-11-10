@@ -7,6 +7,14 @@ namespace Wireframe
 {
     public class ReorderableListOfSlackMessageAttachments : InternalReorderableList<SlackAttachment>
     {
+        private Context m_context;
+        private Dictionary<SlackAttachment, bool> m_showFormattedTexts = new Dictionary<SlackAttachment, bool>();
+
+        public ReorderableListOfSlackMessageAttachments(Context context)
+        {
+            m_context = context;
+        }
+
         protected override void DrawItem(Rect rect, int index, bool isActive, bool isFocused)
         {
             using (new EditorGUILayout.HorizontalScope())
@@ -19,13 +27,8 @@ namespace Wireframe
                 GUI.Label(rect1, new GUIContent("Message", "Attachment text shown in Slack. Supports format tokens and Slack markup."));
                 rect1.x += rect1.width;
 
-                rect1.width = 200;
-                string d = GUI.TextArea(rect1, element.text);
-                if (d != element.text)
-                {
-                    element.text = d;
-                    dirty = true;
-                }
+                rect1.width = 220;
+                dirty |= EditorUtils.FormatStringTextArea(rect1, ref element.text, m_showFormattedTexts, element, m_context);
                 
                 
                 

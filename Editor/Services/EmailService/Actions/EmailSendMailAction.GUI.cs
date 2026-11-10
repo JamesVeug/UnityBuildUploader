@@ -61,7 +61,7 @@ namespace Wireframe
 
             if (m_ccList == null)
             {
-                m_ccList = new ReorderableListOfEmailRecipients();
+                m_ccList = new ReorderableListOfEmailRecipients(m_context);
                 m_ccList.Initialize(m_ccEmails, "CC", m_ccEmails.Count > 0);
             }
             if (m_ccList.OnGUI())
@@ -71,7 +71,7 @@ namespace Wireframe
 
             if (m_bccList == null)
             {
-                m_bccList = new ReorderableListOfEmailRecipients();
+                m_bccList = new ReorderableListOfEmailRecipients(m_context);
                 m_bccList.Initialize(m_bccEmails, "BCC", m_bccEmails.Count > 0);
             }
             if (m_bccList.OnGUI())
@@ -81,7 +81,7 @@ namespace Wireframe
 
             if (m_attachmentList == null)
             {
-                m_attachmentList = new ReorderableListOfEmailAttachments();
+                m_attachmentList = new ReorderableListOfEmailAttachments(m_context);
                 m_attachmentList.Initialize(m_attachments, "Attachments", m_attachments.Count > 0);
             }
             if (m_attachmentList.OnGUI())

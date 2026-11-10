@@ -76,7 +76,7 @@ namespace Wireframe
         {
             string text = m_context.FormatString(m_text);
             string ts = m_context.FormatString("{" + m_messageTimeStamp + "}");
-            SlackSendMessageResponse response = await Slack.UpdateMessage(ts, text, m_channel.ChannelID, m_app.Token, m_attachments, stepResult);
+            SlackSendMessageResponse response = await Slack.UpdateMessage(ts, text, m_channel.ChannelID, m_app.Token, m_attachments.Select(a => a.Format(m_context)).ToList(), stepResult);
             return response.Successful;
         }
 

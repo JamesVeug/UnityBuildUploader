@@ -57,7 +57,7 @@ namespace Wireframe
 
             if (m_attachmentList == null)
             {
-                m_attachmentList = new ReorderableListOfSlackMessageAttachments();
+                m_attachmentList = new ReorderableListOfSlackMessageAttachments(m_context);
                 m_attachmentList.Initialize(m_attachments, "Attachments", m_attachments.Count <= 1, (_) =>
                 {
                     

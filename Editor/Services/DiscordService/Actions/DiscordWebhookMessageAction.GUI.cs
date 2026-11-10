@@ -65,7 +65,7 @@ namespace Wireframe
 
             if (m_embedList == null)
             {
-                m_embedList = new ReorderableListOfDiscordMessageEmbeds();
+                m_embedList = new ReorderableListOfDiscordMessageEmbeds(m_context);
                 m_embedList.Initialize(m_embeds, "Embeds", m_embeds.Count <= 1, (_) => { });
             }
 
