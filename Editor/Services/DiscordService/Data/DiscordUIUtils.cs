@@ -43,6 +43,11 @@ namespace Wireframe
             }
             else
             {
+                if (data.webhooks == null)
+                {
+                    data.webhooks = new List<DiscordConfig.DiscordWebhook>(2);
+                }
+
                 for (var i = 0; i < data.apps.Count; i++)
                 {
                     DiscordConfig.DiscordApp app = data.apps[i];
@@ -56,6 +61,11 @@ namespace Wireframe
                     {
                         data.servers[i].channels[j].Id = j + 1;
                     }
+                }
+
+                for (var i = 0; i < data.webhooks.Count; i++)
+                {
+                    data.webhooks[i].Id = i + 1;
                 }
             }
         }
@@ -122,6 +132,17 @@ namespace Wireframe
             }
         }
         
+        public class DiscordWebhookPopup : CustomDropdown<DiscordConfig.DiscordWebhook>
+        {
+            public override string FirstEntryText => "Choose Webhook";
+
+            protected override List<DiscordConfig.DiscordWebhook> FetchAllData()
+            {
+                GetConfig();
+                return data.webhooks;
+            }
+        }
+        
         public static DiscordAppPopup AppPopup => m_appPopup ?? (m_appPopup = new DiscordAppPopup());
         private static DiscordAppPopup m_appPopup;
         
@@ -130,5 +151,8 @@ namespace Wireframe
         
         public static DiscordChannelPopup ChannelPopup => m_channelPopup ?? (m_channelPopup = new DiscordChannelPopup());
         private static DiscordChannelPopup m_channelPopup;
+        
+        public static DiscordWebhookPopup WebhookPopup => m_webhookPopup ?? (m_webhookPopup = new DiscordWebhookPopup());
+        private static DiscordWebhookPopup m_webhookPopup;
     }
 }

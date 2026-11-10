@@ -9,6 +9,7 @@ namespace Wireframe
     {
         private static ReorderableListOfDiscordAppsProjectSettings _reorderableListOfDiscordAppsProjectSettings;
         private static ReorderableListOfDiscordChannels _reorderableListOfDiscordChannels;
+        private static ReorderableListOfDiscordWebhooksProjectSettings _reorderableListOfDiscordWebhooksProjectSettings;
         private static DiscordConfig.DiscordServer m_SelectedServer;
         private static Context m_context = new Context();
 
@@ -138,6 +139,29 @@ namespace Wireframe
 
                 GUILayout.Label("To set Token used by the App/Bos see Preferences->Build Uploader->Services->Discord.",
                     EditorStyles.wordWrappedLabel);
+
+                GUILayout.Space(20);
+
+                GUILayout.Label("Webhooks", EditorStyles.boldLabel);
+                GUILayout.Label("Webhooks are referenced by name. See Edit->Preferences->Build Uploader->Services->Discord to enter the Webhook URL.",
+                    EditorStyles.wordWrappedLabel);
+
+                if (_reorderableListOfDiscordWebhooksProjectSettings == null)
+                {
+                    _reorderableListOfDiscordWebhooksProjectSettings = new ReorderableListOfDiscordWebhooksProjectSettings();
+                    _reorderableListOfDiscordWebhooksProjectSettings.Initialize(discordConfig.webhooks, "Webhooks",
+                        true, (_) =>
+                        {
+                            DiscordUIUtils.WebhookPopup.Refresh();
+                            DiscordUIUtils.Save();
+                        });
+                }
+
+                if (_reorderableListOfDiscordWebhooksProjectSettings.OnGUI())
+                {
+                    DiscordUIUtils.WebhookPopup.Refresh();
+                    DiscordUIUtils.Save();
+                }
             }
         }
     }

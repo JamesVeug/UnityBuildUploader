@@ -35,7 +35,7 @@ namespace Wireframe
                 return false;
             }
             
-            return data.servers.Count > 0;
+            return data.servers.Count > 0 || (data.webhooks != null && data.webhooks.Count > 0);
         }
     }
 }

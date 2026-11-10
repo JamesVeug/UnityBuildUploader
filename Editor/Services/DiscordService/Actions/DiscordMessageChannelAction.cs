@@ -98,38 +98,7 @@ namespace Wireframe
         
         public override async Task<bool> Execute(UploadTaskReport.StepResult stepResult)
         {
-            List<Dictionary<string, object>> embeds = new List<Dictionary<string, object>>();
-            foreach (Embed embed in m_embeds)
-            {
-                Dictionary<string, object> embedDict = new Dictionary<string, object>();
-                if (!string.IsNullOrEmpty(embed.title))
-                {
-                    embedDict.Add("title", m_context.FormatString(embed.title));
-                }
-                
-                if (!string.IsNullOrEmpty(embed.description))
-                {
-                    embedDict.Add("description", m_context.FormatString(embed.description));
-                }
-                
-                if (!string.IsNullOrEmpty(embed.color))
-                {
-                    string colorHex = embed.color;
-                    if(colorHex.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-                    {
-                        colorHex = colorHex.Substring(2);
-                    }
-                    if(colorHex.StartsWith("#", StringComparison.OrdinalIgnoreCase))
-                    {
-                        colorHex = colorHex.Substring(1);
-                    }
-                    
-                    embedDict.Add("color", int.Parse(colorHex, System.Globalization.NumberStyles.HexNumber));
-                }
-                
-                embeds.Add(embedDict);
-            }
-            
+            List<Dictionary<string, object>> embeds = DiscordEmbedUtils.ToPayload(m_embeds, m_context);
             string text = m_context.FormatString(m_text);
             return await Discord.SendMessageToChannel(m_channel.ChannelID, text, m_app?.Token, m_app?.IsBot ?? true, embeds, stepResult, m_dryRun);
         }
@@ -179,27 +148,8 @@ namespace Wireframe
                 { "text", m_text },
                 { "dryRun", m_dryRun }
             };
-            
-            if (m_embeds != null && m_embeds.Count > 0)
-            {
-                var embedsList = new List<object>();
-                foreach (var embed in m_embeds)
-                {
-                    var embedDict = new Dictionary<string, object>
-                    {
-                        { "title", embed.title },
-                        { "description", embed.description },
-                        { "color", embed.color }
-                    };
-                    embedsList.Add(embedDict);
-                }
-                data["embeds"] = embedsList;
-            }
-            else
-            {
-                data["embeds"] = new List<object>(); // Ensure embeds is always present
-            }
-            
+
+            data["embeds"] = DiscordEmbedUtils.Serialize(m_embeds);
             return data;
         }
 
@@ -240,28 +190,8 @@ namespace Wireframe
                 m_text = string.Empty; // Default to empty string if not set
             }
             m_dryRun = data.TryGetValue("dryRun", out object dryRunObj) && dryRunObj is bool dryRun && dryRun;
-            
-            if (data.TryGetValue("embeds", out object embedsObj) && embedsObj is List<object> embedsList)
-            {
-                m_embeds = new List<Embed>();
-                foreach (var embedData in embedsList)
-                {
-                    if (embedData is Dictionary<string, object> embedDict)
-                    {
-                        Embed embed = new Embed
-                        {
-                            title = embedDict.ContainsKey("title") ? embedDict["title"].ToString() : string.Empty,
-                            description = embedDict.ContainsKey("description") ? embedDict["description"].ToString() : string.Empty,
-                            color = embedDict.ContainsKey("color") ? embedDict["color"].ToString() : string.Empty
-                        };
-                        m_embeds.Add(embed);
-                    }
-                }
-            }
-            else
-            {
-                m_embeds = new List<Embed>(); // Default to empty list if not set
-            }
+
+            m_embeds = DiscordEmbedUtils.Deserialize(data);
         }
     }
 }
