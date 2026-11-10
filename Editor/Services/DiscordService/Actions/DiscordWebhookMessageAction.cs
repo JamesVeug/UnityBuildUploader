@@ -133,6 +133,22 @@ namespace Wireframe
             {
                 errors.Add(new GUIContent("Text or at least one embed must be set."));
             }
+
+            string avatarURL = m_context.FormatString(m_avatarURL);
+            if (!string.IsNullOrEmpty(avatarURL) && !WebImagePreview.IsImageURL(avatarURL))
+            {
+                errors.Add(new GUIContent($"Avatar URL must be an http:// or https:// link ending in {string.Join(", ", WebImagePreview.SupportedExtensions)}."));
+            }
+        }
+
+        public override void TryGetWarnings(List<GUIContent> warnings)
+        {
+            base.TryGetWarnings(warnings);
+
+            if (WebImagePreview.TryGetDownloadProblem(m_context.FormatString(m_avatarURL), out string problem))
+            {
+                warnings.Add(new GUIContent(problem));
+            }
         }
 
         public override Dictionary<string, object> Serialize()

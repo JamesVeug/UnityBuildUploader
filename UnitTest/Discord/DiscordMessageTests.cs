@@ -109,6 +109,24 @@ namespace Wireframe.UnitTest
             Assert.AreEqual(expected, Discord.IsWebhookURL(url));
         }
 
+        [TestCase("not a url", true)]
+        [TestCase("https://example.com/avatar.png", false)]
+        [TestCase("https://example.com/avatar", true)]
+        [TestCase("", false)]
+        public void WebhookActionErrorsOnInvalidAvatarURL(string avatarURL, bool expectError)
+        {
+            var action = new DiscordWebhookMessageAction();
+            action.SetWebhookURL("https://discord.com/api/webhooks/123/abcToken");
+            action.SetText("Hello");
+            action.SetAvatarURL(avatarURL);
+            action.SetDryRun(true);
+
+            var errors = new List<UnityEngine.GUIContent>();
+            action.TryGetErrors(errors);
+
+            Assert.AreEqual(expectError, errors.Any(error => error.text.StartsWith("Avatar URL")));
+        }
+
         [Test]
         public void WebhookActionRoundTripsSerializedData()
         {

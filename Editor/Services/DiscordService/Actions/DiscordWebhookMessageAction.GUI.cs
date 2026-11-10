@@ -57,6 +57,8 @@ namespace Wireframe
                 }
             }
 
+            WebImagePreview.Draw(m_context.FormatString(m_avatarURL), 124);
+
             GUILayout.Label("Text:", GUILayout.Width(50));
             if (EditorUtils.FormatStringTextArea(ref m_text, ref m_showFormattedText, m_context))
             {
