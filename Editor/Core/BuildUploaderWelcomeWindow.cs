@@ -514,31 +514,45 @@ namespace Wireframe {
             MigrateLegacyKey();
 
             string version = Utils.PackageVersion;
-            switch (Preferences.ShowWelcomeWindow)
+            bool noUser = Application.isBatchMode || !UnityEditorInternal.InternalEditorUtility.isHumanControllingUs;
+            if (!ShouldShowWelcome(Preferences.ShowWelcomeWindow, version, Preferences.LastSeenWelcomeVersion,
+                    SessionState.GetBool(ShownThisSessionKey, false), noUser))
             {
-                case Preferences.WelcomeWindowPopup.Never:
-                    return;
-
-                case Preferences.WelcomeWindowPopup.OnStartup:
-                    // This is called every time scripts reload so only show it the first time the editor opens.
-                    if (SessionState.GetBool(ShownThisSessionKey, false))
-                    {
-                        return;
-                    }
-                    break;
-
-                case Preferences.WelcomeWindowPopup.WhenUpdated:
-                    // No version means we failed to read package.json. Don't show it every reload because of that.
-                    if (string.IsNullOrEmpty(version) || Preferences.LastSeenWelcomeVersion == version)
-                    {
-                        return;
-                    }
-                    break;
+                return;
             }
 
             SessionState.SetBool(ShownThisSessionKey, true);
             BuildUploaderWelcomeWindow.ShowWindow();
             Preferences.LastSeenWelcomeVersion = version;
+        }
+
+        /// <summary>
+        /// Whether the Welcome window should open on its own after a script reload.
+        /// Never with no user to see it (batch mode, test runs), so those also don't use up the "When updated" popup.
+        /// </summary>
+        internal static bool ShouldShowWelcome(Preferences.WelcomeWindowPopup setting, string version,
+            string lastSeenVersion, bool shownThisSession, bool noUser)
+        {
+            if (noUser)
+            {
+                return false;
+            }
+
+            switch (setting)
+            {
+                case Preferences.WelcomeWindowPopup.Never:
+                    return false;
+
+                case Preferences.WelcomeWindowPopup.OnStartup:
+                    // This is called every time scripts reload so only show it the first time the editor opens.
+                    return !shownThisSession;
+
+                case Preferences.WelcomeWindowPopup.WhenUpdated:
+                    // No version means we failed to read package.json. Don't show it every reload because of that.
+                    return !string.IsNullOrEmpty(version) && lastSeenVersion != version;
+            }
+
+            return true;
         }
 
         /// <summary>
