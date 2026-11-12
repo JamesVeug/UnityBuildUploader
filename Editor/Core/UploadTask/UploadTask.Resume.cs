@@ -390,6 +390,9 @@ namespace Wireframe
         /// A script reload part way through a step that can't run again fails the task. A build can leave the editor
         /// compiling, for example when it changed the active build profile's scripting defines, so before such a step
         /// starts this waits for the compile and its reload. A reload while waiting resumes at the start of the step.
+        /// Scripts written to disk but not imported yet, such as code another package generates after a reload, are
+        /// refreshed first so they compile now instead of on whatever refresh comes next, like the editor regaining
+        /// focus from SteamCMD part way through an upload.
         /// Batch mode compiles before a build rather than after it, so it doesn't wait.
         /// </summary>
         private async Task WaitForScriptsToCompile(AUploadTask_Step step, CancellationTokenSource token)
@@ -402,6 +405,7 @@ namespace Wireframe
             // isCompiling is true as soon as a compile is requested, but Unity requests one for changed scripting
             // defines on an editor update after the build
             Checkpoint(step.Type, CheckpointPhase.Waiting);
+            AssetDatabase.Refresh();
             await Task.Yield();
 
             if (!EditorApplication.isCompiling || m_debugForceStopTask)
