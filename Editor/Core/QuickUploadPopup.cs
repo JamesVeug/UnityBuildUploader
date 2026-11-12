@@ -104,6 +104,14 @@ namespace Wireframe
         public void Upload()
         {
             m_task.SetBuildDescription(m_inputText);
+            m_task.StartedFromWindow = true;
+            WindowUploadTab.ShowResultWhenComplete(m_task);
+            UploadTask.AllTasks.Add(m_task);
+            if (Preferences.AutoFocusNewUploadTask)
+            {
+                BuildUploaderTaskWindow.FocusTask(m_task);
+            }
+
             _ = m_task.StartAsync();
         }
     }
